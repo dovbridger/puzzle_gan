@@ -25,10 +25,10 @@ def make_dataset(dir):
     images = []
     assert os.path.isdir(dir), '%s is not a valid directory' % dir
 
-    for root, _, fnames in sorted(os.walk(dir)):
-        for fname in fnames:
-            if is_image_file(fname):
-                path = os.path.join(root, fname)
+    for root, _, file_names in sorted(os.walk(dir)):
+        for file_name in file_names:
+            if is_image_file(file_name):
+                path = os.path.join(root, file_name)
                 images.append(path)
 
     return images

@@ -24,9 +24,8 @@ class BaseDataset(data.Dataset):
 def get_transform(opt):
     transform_list = []
     if opt.resize_or_crop == 'resize_and_crop':
-        osize = [opt.loadSize, opt.loadSize]
         if opt.only_crop == 0:
-            transform_list.append(transforms.Resize(osize, Image.BICUBIC))
+            transform_list.append(transforms.Resize(opt.loadSize, Image.BICUBIC))
             transform_list.append(transforms.RandomCrop(opt.fineSize))
         else:
             transform_list.append(transforms.CenterCrop(opt.fineSize))
@@ -34,10 +33,10 @@ def get_transform(opt):
         transform_list.append(transforms.RandomCrop(opt.fineSize))
     elif opt.resize_or_crop == 'scale_width':
         transform_list.append(transforms.Lambda(
-            lambda img: __scale_width(img, opt.fineSize)))
+            lambda img: __scale_width(img, opt.fineSize[1])))
     elif opt.resize_or_crop == 'scale_width_and_crop':
         transform_list.append(transforms.Lambda(
-            lambda img: __scale_width(img, opt.loadSize)))
+            lambda img: __scale_width(img, opt.loadSize[1])))
         transform_list.append(transforms.RandomCrop(opt.fineSize))
     elif opt.resize_or_crop == 'none':
         transform_list.append(transforms.Lambda(

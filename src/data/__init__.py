@@ -5,7 +5,7 @@ from data.base_dataset import BaseDataset
 
 
 def find_dataset_using_name(dataset_name):
-    # Given the option --dataset_mode [datasetname],
+    # Given the option --dataset_name,
     # the file "data/datasetname_dataset.py"
     # will be imported.
     dataset_filename = "data." + dataset_name + "_dataset"
@@ -35,7 +35,7 @@ def get_option_setter(dataset_name):
 
 
 def create_dataset(opt):
-    dataset = find_dataset_using_name(opt.dataset_mode)
+    dataset = find_dataset_using_name(opt.dataset_name)
     instance = dataset()
     instance.initialize(opt)
     print("dataset [%s] was created" % (instance.name()))

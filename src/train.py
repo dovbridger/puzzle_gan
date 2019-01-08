@@ -1,11 +1,11 @@
 import time
-#from options.train_options import TrainOptions
+from options.train_options import TrainOptions
 from data import CreateDataLoader
 from models import create_model
 from utils.visualizer import Visualizer
 
 if __name__ == '__main__':
-    #opt = TrainOptions().parse()
+    opt = TrainOptions().parse()
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()
     dataset_size = len(data_loader)
@@ -29,11 +29,7 @@ if __name__ == '__main__':
             total_steps += opt.batchSize
             epoch_iter += opt.batchSize
             model.set_input(data)
-            if epoch > opt.niter + opt.niter_decay - opt.only_bank_iter:
-                model.optimize_parameters(last=True)
-            else:
-                model.optimize_parameters()
-
+            model.optimize_parameters()
             if total_steps % opt.display_freq == 0:
                 save_result = total_steps % opt.update_html_freq == 0
                 visualizer.display_current_results(model.get_current_visuals(), epoch, save_result)

@@ -95,12 +95,12 @@ class UnetGenerator(nn.Module):
         self.layer4_d_out = self.layer4_d(self.layer3_d_out)
 
         self.middle_d_in = self.layer4_d_out
-        self.middle_d_out = self.middle_d(self.layer5_d_out)
+        self.middle_d_out = self.middle_d(self.middle_d_in)
         self.middle_u_out = self.middle_u(self.middle_d_out)
         # Input to decoder layer 4, before concatenating skip connection
         self.in_layer4_u = self.middle_u_out
 
-        in_4 = torch.cat([self.layer4_u, self.layer4_d_out], 1)
+        in_4 = torch.cat([self.in_layer4_u, self.layer4_d_out], 1)
         self.layer4_u_out = self.layer4_u(in_4)
         in_3 = torch.cat([self.layer4_u_out, self.layer3_d_out], 1)
         self.layer3_u_out = self.layer3_u(in_3)
@@ -112,6 +112,19 @@ class UnetGenerator(nn.Module):
         self.layer0_u_out = self.layer0_u(in_0)
         return self.layer0_u_out
 
+def get_scheduler(optimizer, opt):
+    if opt.lr_policy == 'lambda':
+        def lambda_rule(epoch):
+            lr_l = 1.0 - max(0, epoch + 1 + opt.epoch_count - opt.niter) / float(opt.niter_decay + 1)
+            return lr_l
+        scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
+    elif opt.lr_policy == 'step':
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=opt.lr_decay_iters, gamma=0.1)
+    elif opt.lr_policy == 'plateau':
+        scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, threshold=0.01, patience=5)
+    else:
+        return NotImplementedError('learning rate policy [%s] is not implemented', opt.lr_policy)
+    return scheduler
 
 def init_weights(net, init_type='normal', gain=0.02):
     def init_func(m):
@@ -162,6 +175,78 @@ class PixelDiscriminator(nn.Module):
         return self.net(input)
 
 
+class NLayerDiscriminator(nn.Module):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, use_sigmoid=False):
+        super(NLayerDiscriminator, self).__init__()
+        if type(norm_layer) == functools.partial:
+            use_bias = norm_layer.func == nn.InstanceNorm2d
+        else:
+            use_bias = norm_layer == nn.InstanceNorm2d
+
+        kw = 4
+        padw = 1
+        sequence = [
+            nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw),
+            nn.LeakyReLU(0.2, True)
+        ]
+
+        nf_mult = 1
+        for n in range(1, n_layers):
+            nf_mult_prev = nf_mult
+            nf_mult = min(2**n, 8)
+            sequence += [
+                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult,
+                          kernel_size=kw, stride=2, padding=padw, bias=use_bias),
+                norm_layer(ndf * nf_mult),
+                nn.LeakyReLU(0.2, True)
+            ]
+
+        nf_mult_prev = nf_mult
+        nf_mult = min(2**n_layers, 8)
+        sequence += [
+            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult,
+                      kernel_size=kw, stride=1, padding=padw, bias=use_bias),
+            norm_layer(ndf * nf_mult),
+            nn.LeakyReLU(0.2, True)
+        ]
+
+        sequence += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]
+
+        if use_sigmoid:
+            sequence += [nn.Sigmoid()]
+
+        self.model = nn.Sequential(*sequence)
+
+    def forward(self, input):
+        return self.model(input)
+
+# Defines the GAN loss which uses either LSGAN or the regular GAN.
+# When LSGAN is used, it is basically same as MSELoss,
+# but it abstracts away the need to create the target label tensor
+# that has the same size as the input
+class GANLoss(nn.Module):
+    def __init__(self, use_lsgan=True, target_real_label=1.0, target_fake_label=0.0):
+        super(GANLoss, self).__init__()
+        self.register_buffer('real_label', torch.tensor(target_real_label))
+        self.register_buffer('fake_label', torch.tensor(target_fake_label))
+        if use_lsgan:
+            self.loss = nn.MSELoss()
+        else:
+            self.loss = nn.BCELoss()
+
+    def get_target_tensor(self, input, target_is_real):
+        if target_is_real:
+            target_tensor = self.real_label
+        else:
+            target_tensor = self.fake_label
+        return target_tensor.expand_as(input)
+
+    def __call__(self, input, target_is_real):
+        target_tensor = self.get_target_tensor(input, target_is_real)
+        return self.loss(input, target_tensor)
+
+
+
 def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     # if len(gpu_ids) > 0:
     #    assert(torch.cuda.is_available())
@@ -173,11 +258,11 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
 
 def get_generator(input_nc, output_nc, ngf, init_type='normal', init_gain=0.02, gpu_ids=[]):
     norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
-    netG = UnetGenerator(input_nc, output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout)
+    netG = UnetGenerator(input_nc, output_nc, ngf=ngf, norm_layer=norm_layer)
     return init_net(netG, init_type, init_gain, gpu_ids)
 
 
 def get_descriminator(input_nc, ndf, use_sigmoid=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
     norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
-    netD = PixelDiscriminator(input_nc, ndf, norm_layer=norm_layer, use_sigmoid=use_sigmoid)
+    netD = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer, use_sigmoid=use_sigmoid)
     return init_net(netD, init_type, init_gain, gpu_ids)

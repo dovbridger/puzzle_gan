@@ -17,19 +17,20 @@ def save_images(webpage, visuals, image_path, aspect_ratio=1.0, width=256):
     ims, txts, links = [], [], []
 
     for label, im_data in visuals.items():
-        im = tensor2im(im_data)
-        image_name = '%s_%s.png' % (name, label)
-        save_path = os.path.join(image_dir, image_name)
-        h, w, _ = im.shape
-        if aspect_ratio > 1.0:
-            im = imresize(im, (h, int(w * aspect_ratio)), interp='bicubic')
-        if aspect_ratio < 1.0:
-            im = imresize(im, (int(h / aspect_ratio), w), interp='bicubic')
-        save_image(im, save_path)
+        if im_data is not None:
+            im = tensor2im(im_data)
+            image_name = '%s_%s.png' % (name, label)
+            save_path = os.path.join(image_dir, image_name)
+            h, w, _ = im.shape
+            if aspect_ratio > 1.0:
+                im = imresize(im, (h, int(w * aspect_ratio)), interp='bicubic')
+            if aspect_ratio < 1.0:
+                im = imresize(im, (int(h / aspect_ratio), w), interp='bicubic')
+            save_image(im, save_path)
 
-        ims.append(image_name)
-        txts.append(label)
-        links.append(image_name)
+            ims.append(image_name)
+            txts.append(label)
+            links.append(image_name)
     webpage.add_images(ims, txts, links, width=width)
 
 

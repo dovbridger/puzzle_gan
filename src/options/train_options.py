@@ -3,9 +3,8 @@ from .base_options import BaseOptions
 
 class TrainOptions(BaseOptions):
     def initialize(self, parser):
-        niter_decay = 8  # 2  # 100
-        only_bank_iter = 5  # 1  # 0
-        niter = 12  # 2  # 100
+        niter_decay = 2#8
+        niter = 3 #12
         only_crop = False
         parser = BaseOptions.initialize(self, parser)
         parser.add_argument('--display_freq', type=int, default=400, help='frequency of showing training results on screen')
@@ -16,7 +15,7 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--save_epoch_freq', type=int, default=5, help='frequency of saving checkpoints at the end of epochs')
         parser.add_argument('--continue_train', action='store_true', help='continue training: load the latest model')
         parser.add_argument('--epoch_count', type=int, default=1, help='the starting epoch count, we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>, ...')
-        parser.add_argument('--phase', type=str, default='train', help='train, val, test, etc')
+        parser.add_argument('--phase', type=str, default='train', help='train, validation, test')
         parser.add_argument('--which_epoch', type=str, default='latest', help='which epoch to load? set to latest to use latest cached model')
         parser.add_argument('--niter', type=int, default=niter, help='# of iter at starting learning rate')
         parser.add_argument('--niter_decay', type=int, default=niter_decay, help='# of iter to linearly decay learning rate to zero')
@@ -27,7 +26,6 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--no_html', action='store_true', help='do not save intermediate training results to [opt.checkpoints_dir]/[opt.name]/web/')
         parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau')
         parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
-        parser.add_argument('--only_bank_iter', type=int, default=only_bank_iter, help='after orginal net traines bank will train for only bank iter itrations')
         parser.add_argument('--only_crop', type=int, default=int(only_crop), help='if there is no need to resize set to 1 => just crop')
         self.isTrain = True
         return parser
