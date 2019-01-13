@@ -8,11 +8,13 @@ class PuzzleTestDataset(PuzzleDataset):
     An extended version of 'PuzzleDataset' That appends examples of false puzzle piece neighbors to qualitively compare
     the inpainting results to those of the true neighbors
     '''
-
+    @staticmethod
     def modify_commandline_options(parser, is_train):
         assert not is_train, "PuzzleTestDataset should not be used in training mode"
+        parser = PuzzleDataset.modify_commandline_options(parser, is_train)
         parser.add_argument('--num_false_examples', type=int, default=1,
                             help='What is the maximum number of false completion examples to test for each true example')
+        return parser
 
     def initialize(self, opt):
         super(PuzzleTestDataset, self).initialize(opt)

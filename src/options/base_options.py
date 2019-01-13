@@ -7,18 +7,22 @@ import data
 import os.path
 
 class BaseOptions():
+    '''
+    General command line options for the code
+    '''
     def __init__(self):
         self.initialized = False
         self.project_root = r'C:\SHARE\checkouts\puzzle_gan'
+        # Directory which is a default location where models and results can be saved
         self.saved_data_root = os.path.join(self.project_root, 'saved_data')
 
     def initialize(self, parser):
         model = 'puzzle_gan'
-        task = 'puzzle_try'
+        task = 'toy_example'
         experiment_name = 'e1'
         loadSize = (64, 128)
         fine_size = (64, 128)
-        data_root = os.path.join(self.project_root, 'datasets', 'puzzle_parts')
+        data_root = os.path.join(self.project_root, 'datasets', 'mnist')
         batchSize = 64
         dataset_name = 'puzzle'
         parser.add_argument('--dataroot', type=str, default=data_root, help='path to images (should have subfolders train, validation, test)')
@@ -37,6 +41,8 @@ class BaseOptions():
         parser.add_argument('--checkpoints_dir', type=str,
                             default=os.path.join(self.saved_data_root, 'models'),
                             help='models are saved here')
+        parser.add_argument('--norm', type=str, default='batch',
+                            help='Type of normalization to use ("instance", "batch", "none")')
         parser.add_argument('--serial_batches', action='store_true', help='if true, takes images in order to make batches, otherwise takes them randomly')
         parser.add_argument('--display_winsize', type=int, default=256, help='display window size')
         parser.add_argument('--display_id', type=int, default=1, help='window id of the web display')

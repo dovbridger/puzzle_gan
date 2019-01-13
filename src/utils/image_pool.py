@@ -3,6 +3,9 @@ import torch
 
 
 class ImagePool:
+    '''
+    Dov: Not quite sure what this class is for. When I use pool_size = 0 it basically does nothing
+    '''
     def __init__(self, pool_size):
         self.pool_size = pool_size
         if self.pool_size > 0:

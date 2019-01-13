@@ -2,6 +2,10 @@ from .base_options import BaseOptions
 
 
 class TrainOptions(BaseOptions):
+    '''
+    Append additional training options to the BaseOptions
+    this class will be instantiated in 'train.py'
+    '''
     def initialize(self, parser):
         niter_decay = 16#8
         niter = 20#12

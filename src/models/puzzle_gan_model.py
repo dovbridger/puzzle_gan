@@ -15,9 +15,9 @@ class PuzzleGanModel(BaseModel):
         # (https://phillipi.github.io/pix2pix/)
         parser.set_defaults(pool_size=0, no_lsgan=True, norm='batch')
         parser.add_argument('--discriminator_window', type=int, default=16,
-                            help='Width of the centered window that will be fed to the discriminator')
+                            help='Width of the centered window that will be fed to the discriminator (Not implemented yet)')
         parser.add_argument('--generator_window', type=int, default=32,
-                            help='Width of the centered window where the generated pixels will remain, the rest will be ignored')
+                            help='Width of the centered window where the generated pixels will remain, the rest will be ignored (Not implemented yet)')
         if is_train:
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
 
@@ -30,25 +30,30 @@ class PuzzleGanModel(BaseModel):
         assert opt.generator_window >= opt.discriminator_window,\
             "The descriminator window({0}) should not be smaller than the generator window({1})".format(opt.discriminator_window, opt.generator_window)
         self.isTrain = opt.isTrain
+
         # specify the training losses you want to print out. The program will call base_model.get_current_losses
         # self.loss_<item> must exist for every <item> in self.loss_names
         self.loss_names = ['G_GAN', 'G_L1', 'D_real', 'D_fake']
+
         # specify the images you want to save/display. The program will call base_model.get_current_visuals
         # self.<item> must exist for every <item> in self.visual_names
         self.visual_names = ['burnt', 'real', 'fake']
+
         # specify the models you want to save to the disk. The program will call base_model.save_networks and base_model.load_networks
         if self.isTrain:
             self.model_names = ['G', 'D']
         else:  # during test time, only load Gs
             self.model_names = ['G']
+
         # load/define networks
-        self.netG = networks.get_generator(opt.input_nc, opt.output_nc, opt.ngf, opt.init_type, opt.init_gain,
-                                           self.gpu_ids)
+        self.netG = networks.get_generator(opt.input_nc, opt.output_nc, opt.ngf, opt.norm, opt.init_type, opt.init_gain,
+                                           self.gpu_ids, opt.generator_window)
         if self.isTrain:
             use_sigmoid = opt.no_lsgan
-            self.netD = networks.get_descriminator(opt.input_nc + opt.output_nc, opt.ndf, use_sigmoid, opt.init_type,
+            self.netD = networks.get_descriminator(opt.input_nc + opt.output_nc, opt.ndf, opt.norm, use_sigmoid, opt.init_type,
                                                    opt.init_gain, self.gpu_ids)
             self.burnt_and_fake_pool = ImagePool(opt.pool_size)
+
             # define loss functions
             self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan).to(self.device)
             self.criterionL1 = torch.nn.L1Loss()
@@ -71,7 +76,6 @@ class PuzzleGanModel(BaseModel):
         self.fake = self.netG(self.burnt)
 
     def backward_D(self):
-        # Fake
         # stop backprop to the generator by detaching 'burnt_and_fake'
         burnt_and_fake = self.burnt_and_fake_pool.query(torch.cat((self.burnt, self.fake), 1))
         pred_fake = self.netD(burnt_and_fake.detach())

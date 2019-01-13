@@ -3,6 +3,10 @@ from os import path
 
 
 class TestOptions(BaseOptions):
+    '''
+    Append additional training options to the BaseOptions
+    This class will be instantiated in 'test.py'
+    '''
     def initialize(self, parser):
         parser = BaseOptions.initialize(self, parser)
         parser.add_argument('--ntest', type=int, default=float("inf"), help='# of test examples.')

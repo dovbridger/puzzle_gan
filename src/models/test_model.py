@@ -1,5 +1,6 @@
 from .base_model import BaseModel
 from . import networks
+from .puzzle_gan_model import PuzzleGanModel
 
 
 class TestModel(BaseModel):
@@ -9,6 +10,7 @@ class TestModel(BaseModel):
     @staticmethod
     def modify_commandline_options(parser, is_train=True):
         assert not is_train, 'TestModel cannot be used in train mode'
+        parser = PuzzleGanModel.modify_commandline_options(parser, is_train)
         parser.add_argument('--model_suffix', type=str, default='',
                             help='In checkpoints_dir, [which_epoch]_net_G[model_suffix].pth will'
                             ' be loaded as the generator of TestModel')
@@ -31,8 +33,8 @@ class TestModel(BaseModel):
         # specify the models you want to save to the disk. The program will call base_model.save_networks and base_model.load_networks
         self.model_names = ['G' + opt.model_suffix]
 
-        self.netG = networks.get_generator(opt.input_nc, opt.output_nc, opt.ngf, opt.init_type, opt.init_gain,
-                                           self.gpu_ids)
+        self.netG = networks.get_generator(opt.input_nc, opt.output_nc, opt.ngf, opt.norm, opt.init_type, opt.init_gain,
+                                           self.gpu_ids, opt.generator_window)
 
         # assigns the model to self.netG_[suffix] so that it can be loaded
         # please see BaseModel.load_networks
@@ -48,6 +50,8 @@ class TestModel(BaseModel):
                 setattr(self, 'burnt_false_' + str(i), burnt_false_images[i].to(self.device))
                 setattr(self, 'real_false_' + str(i), real_false_images[i].to(self.device))
             else:
+                # If there aren't enough false examples set the attributes to None.
+                # Not setting the attributes at all could lead to bugs later on in the visualizer
                 setattr(self, 'burnt_false_' + str(i), None)
                 setattr(self, 'real_false_' + str(i), None)
 
@@ -55,6 +59,8 @@ class TestModel(BaseModel):
 
     def forward(self):
         self.fake_true = self.netG(self.burnt_true)
+
+        # Create as many fake images as there exist false neighbor examples
         for i in range(self.opt.num_false_examples):
             burnt_false = getattr(self, 'burnt_false_' + str(i))
             if burnt_false is not None:

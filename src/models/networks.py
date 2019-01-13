@@ -5,13 +5,24 @@ from torch.optim import lr_scheduler
 
 
 class UnetLeftBlock(nn.Module):
+    '''
+     An Encoder block that performs the required normalization, a convolution, and activation
+    '''
     def __init__(self, input_nc, output_nc, innermost=False, norm_layer=nn.BatchNorm2d):
+        '''
+
+        :param input_nc: number of input channels
+        :param output_nc: number of output channels
+        :param innermost: boolean, is this the last encoder block of the network?
+        :param norm_layer: The requested normalization layer
+        '''
         super(UnetLeftBlock, self).__init__()
         self.innermost = innermost
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
+        # With these parameters the width and height of the output will be half of the input's
         self.downconv = nn.Conv2d(input_nc, output_nc, kernel_size=4, stride=2, padding=1, bias=use_bias)
         if not innermost:
             self.downnorm = norm_layer(output_nc)
@@ -29,13 +40,23 @@ class UnetLeftBlock(nn.Module):
 
 
 class UnetRightBlock(nn.Module):
+    '''
+    A decoder block that performs the required normalization, a de-convolution, and activation
+    '''
     def __init__(self, input_nc, output_nc, outermost=False, norm_layer=nn.BatchNorm2d):
+        '''
+        :param input_nc: number of input channels
+        :param output_nc: number of output channels
+        :param outermost: boolean, is this the last decoder block of the network?
+        :param norm_layer: The requested normalization layer
+        '''
         super(UnetRightBlock, self).__init__()
         self.outermost = outermost
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
+        # With these parameters the width and height of the output will be twice as the input's
         self.upconv = nn.ConvTranspose2d(input_nc, output_nc, kernel_size=4, stride=2, padding=1, bias=use_bias)
         if not outermost:
             self.upnorm = norm_layer(output_nc)
@@ -54,6 +75,15 @@ class UnetRightBlock(nn.Module):
 
 
 class UnetGenerator(nn.Module):
+    '''
+    The network for the Generator. consists of:
+    6 encoder layers
+    no bottleneck
+    6 decoder layers
+    For example, a 64 x 128 x 3 image will be encoded to a 1 x 2 x (ngf * 8) at the end of the encoder and back to
+    64 x 128 x 3 at the end of the decoder
+    Skip connections between encoder and decoder layers of same size are implemented in the 'forward' method
+    '''
     def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, generator_window=None):
         super(UnetGenerator, self).__init__()
         self.generator_window = generator_window
@@ -89,19 +119,23 @@ class UnetGenerator(nn.Module):
         self.in_layer4_u = self.layer4_u_out = self.layer3_u_out =\
             self.layer2_u_out = self.layer1_u_out = self.layer0_u_out = None
 
-    def forward(self, x):
-        self.layer0_d_out = self.layer0_d(x)
+    def forward(self, input):
+        # layerx_d_out: The output from layer 'x' of the encoder
+        self.layer0_d_out = self.layer0_d(input)
         self.layer1_d_out = self.layer1_d(self.layer0_d_out)
         self.layer2_d_out = self.layer2_d(self.layer1_d_out)
         self.layer3_d_out = self.layer3_d(self.layer2_d_out)
         self.layer4_d_out = self.layer4_d(self.layer3_d_out)
 
+        # middle_d is the last layer of the encoder and middle u is the first layer of the decoder that follows
         self.middle_d_in = self.layer4_d_out
         self.middle_d_out = self.middle_d(self.middle_d_in)
         self.middle_u_out = self.middle_u(self.middle_d_out)
         # Input to decoder layer 4, before concatenating skip connection
         self.in_layer4_u = self.middle_u_out
 
+        # in_x is the input to layer 'x' of the decoder (counting from the end) after concatenating the skip connection
+        # From the output of layer 'x' of the encoder
         in_4 = torch.cat([self.in_layer4_u, self.layer4_d_out], 1)
         self.layer4_u_out = self.layer4_u(in_4)
         in_3 = torch.cat([self.layer4_u_out, self.layer3_d_out], 1)
@@ -112,9 +146,30 @@ class UnetGenerator(nn.Module):
         self.layer1_u_out = self.layer1_u(in_1)
         in_0 = torch.cat([self.layer1_u_out, self.layer0_d_out], 1)
         self.layer0_u_out = self.layer0_u(in_0)
-        if self.generator_window is not None:
-            self.layer0_u_out
-        return self.layer0_u_out
+        self.final_output = self.layer0_u_out
+
+        # This code doesn't work yet so don't use it
+        if False and self.generator_window is not None:
+            width_center = int(self.layer0_u_out.size()[3] / 2)
+            generated_columns_start = int(width_center - self.generator_window / 2)
+            generated_columns_end = generated_columns_start + self.generator_window
+            # For some reason the indexing only works on the first dimension(0), so this code is not right
+            self.final_output = torch.cat([input[0:generated_columns_start][:][:][:],
+                                           self.layer0_u_out[:][:][:][generated_columns_start:generated_columns_end],
+                                           input[:][:][:][generated_columns_end:]], 3)
+        return self.final_output
+
+def get_norm_layer(norm_type='instance'):
+    if norm_type == 'batch':
+        norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
+    elif norm_type == 'instance':
+        norm_layer = functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=True)
+    elif norm_type == 'none':
+        norm_layer = None
+    else:
+        raise NotImplementedError('normalization layer [%s] is not found' % norm_type)
+    return norm_layer
+
 
 def get_scheduler(optimizer, opt):
     if opt.lr_policy == 'lambda':
@@ -154,6 +209,7 @@ def init_weights(net, init_type='normal', gain=0.02):
     net.apply(init_func)
 
 
+# This Discriminator is not used in Dov's code
 class PixelDiscriminator(nn.Module):
     def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d, use_sigmoid=False):
         super(PixelDiscriminator, self).__init__()
@@ -180,6 +236,9 @@ class PixelDiscriminator(nn.Module):
 
 
 class NLayerDiscriminator(nn.Module):
+    '''
+    The structure is similar to the first half of the generator network ('UnetGenerator')
+    '''
     def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, use_sigmoid=False):
         super(NLayerDiscriminator, self).__init__()
         if type(norm_layer) == functools.partial:
@@ -224,6 +283,7 @@ class NLayerDiscriminator(nn.Module):
     def forward(self, input):
         return self.model(input)
 
+
 # Defines the GAN loss which uses either LSGAN or the regular GAN.
 # When LSGAN is used, it is basically same as MSELoss,
 # but it abstracts away the need to create the target label tensor
@@ -260,13 +320,12 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     net = net.cuda()
     return net
 
-def get_generator(input_nc, output_nc, ngf, init_type='normal', init_gain=0.02, gpu_ids=[]):
-    norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
-    netG = UnetGenerator(input_nc, output_nc, ngf=ngf, norm_layer=norm_layer)
+def get_generator(input_nc, output_nc, ngf, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[],
+                  generator_window=None):
+    netG = UnetGenerator(input_nc, output_nc, ngf=ngf, norm_layer=get_norm_layer(norm), generator_window=generator_window)
     return init_net(netG, init_type, init_gain, gpu_ids)
 
 
-def get_descriminator(input_nc, ndf, use_sigmoid=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
-    norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
-    netD = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer, use_sigmoid=use_sigmoid)
+def get_descriminator(input_nc, ndf, norm='batch', use_sigmoid=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
+    netD = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=get_norm_layer(norm), use_sigmoid=use_sigmoid)
     return init_net(netD, init_type, init_gain, gpu_ids)

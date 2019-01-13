@@ -20,38 +20,48 @@ if __name__ == '__main__':
         epoch_start_time = time.time()
         iter_data_time = time.time()
         epoch_iter = 0
-
+        # key - action to be performed, value - the value the step counter needs to reach before performing the action
+        next_action = {'display': opt.display_freq, 'print': 0, 'update_html': opt.update_html_freq,
+                       'save_latest': opt.save_latest_freq, 'save_epoch': opt.save_epoch_freq}
         for i, data in enumerate(dataset):
             iter_start_time = time.time()
-            if total_steps % opt.print_freq == 0:
+            if total_steps >= next_action['print']:
+                # Save the time because we are going to print during this iteration
                 t_data = iter_start_time - iter_data_time
             visualizer.reset()
             total_steps += opt.batchSize
             epoch_iter += opt.batchSize
             model.set_input(data)
             model.optimize_parameters()
-            if total_steps % opt.display_freq == 0:
-                save_result = total_steps % opt.update_html_freq == 0
+            if total_steps >= next_action['display']:
+                save_result = False
+                if total_steps >= next_action['update_html']:
+                    save_result = True
+                    next_action['update_html'] = next_action['update_html'] + opt.update_html_freq
                 visualizer.display_current_results(model.get_current_visuals(), epoch, save_result)
+                next_action['display'] = next_action['display'] + opt.display_freq
 
-            if total_steps % opt.print_freq == 0:
+            if total_steps >= next_action['print']:
                 losses = model.get_current_losses()
                 t = (time.time() - iter_start_time) / opt.batchSize
                 visualizer.print_current_losses(epoch, epoch_iter, losses, t, t_data)
                 if opt.display_id > 0:
                     visualizer.plot_current_losses(epoch, float(epoch_iter) / dataset_size, opt, losses)
+                next_action['print'] = next_action['print'] + opt.print_freq
 
-            if total_steps % opt.save_latest_freq == 0:
+            if total_steps >= next_action['save_latest']:
                 print('saving the latest model (epoch %d, total_steps %d)' %
                       (epoch, total_steps))
                 model.save_networks('latest')
+                next_action['save_latest'] = next_action['save_latest'] + opt.save_latest_freq
 
             iter_data_time = time.time()
-        if epoch % opt.save_epoch_freq == 0:
+        if epoch >= next_action['save_epoch']:
             print('saving the model at the end of epoch %d, iters %d' %
                   (epoch, total_steps))
             model.save_networks('latest')
             model.save_networks(epoch)
+            next_action['save_epoch'] = next_action['save_epoch'] + opt.save_epoch_freq
 
         print('End of epoch %d / %d \t Time Taken: %d sec' %
               (epoch, opt.niter + opt.niter_decay, time.time() - epoch_start_time))
