@@ -12,17 +12,17 @@ class BaseOptions():
     '''
     def __init__(self):
         self.initialized = False
-        self.project_root = r'C:\SHARE\checkouts\puzzle_gan'
-        # Directory which is a default location where models and results can be saved
+        self.project_root = r'../'
+        # Directory where models and results can be saved
         self.saved_data_root = os.path.join(self.project_root, 'saved_data')
 
     def initialize(self, parser):
         model = 'puzzle_gan'
-        task = 'toy_example'
+        task = 'puzzle_try'
         experiment_name = 'e1'
         loadSize = (64, 128)
         fine_size = (64, 128)
-        data_root = os.path.join(self.project_root, 'datasets', 'mnist')
+        data_root = os.path.join(self.project_root, 'datasets', 'puzzle_parts')
         batchSize = 64
         dataset_name = 'puzzle'
         parser.add_argument('--dataroot', type=str, default=data_root, help='path to images (should have subfolders train, validation, test)')
