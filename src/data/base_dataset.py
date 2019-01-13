@@ -4,6 +4,9 @@ import torchvision.transforms as transforms
 
 
 class BaseDataset(data.Dataset):
+    '''
+    Base class for future dataset classes
+    '''
     def __init__(self):
         super(BaseDataset, self).__init__()
 
@@ -12,6 +15,12 @@ class BaseDataset(data.Dataset):
 
     @staticmethod
     def modify_commandline_options(parser, is_train):
+        '''
+        Implement this method to add / modify the command line options when this dataset class is used
+        :param parser:
+        :param is_train: boolean, is the script run in training mode
+        :return: parser containing the modified commandline options
+        '''
         return parser
 
     def initialize(self, opt):
@@ -22,6 +31,12 @@ class BaseDataset(data.Dataset):
 
 
 def get_transform(opt):
+    '''
+    Builds and returns the transformations that need to be done on the input images according to the options specified
+    in 'opt'
+    :param opt: The command line options
+    :return: A sequence of transforms to be performed on the input before feeding it to the network
+    '''
     transform_list = []
     if opt.resize_or_crop == 'resize_and_crop':
         if opt.only_crop == 0:

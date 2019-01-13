@@ -54,8 +54,10 @@ class UnetRightBlock(nn.Module):
 
 
 class UnetGenerator(nn.Module):
-    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d):
+    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, generator_window=None):
         super(UnetGenerator, self).__init__()
+        self.generator_window = generator_window
+
         # 64 x 128 in -> 32 x 64 out
         self.layer0_d = UnetLeftBlock(input_nc, ngf, norm_layer=norm_layer)
         # 32 x 64 in -> 16 x 32 out
@@ -110,6 +112,8 @@ class UnetGenerator(nn.Module):
         self.layer1_u_out = self.layer1_u(in_1)
         in_0 = torch.cat([self.layer1_u_out, self.layer0_d_out], 1)
         self.layer0_u_out = self.layer0_u(in_0)
+        if self.generator_window is not None:
+            self.layer0_u_out
         return self.layer0_u_out
 
 def get_scheduler(optimizer, opt):

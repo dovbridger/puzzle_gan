@@ -12,8 +12,6 @@ class TestModel(BaseModel):
         parser.add_argument('--model_suffix', type=str, default='',
                             help='In checkpoints_dir, [which_epoch]_net_G[model_suffix].pth will'
                             ' be loaded as the generator of TestModel')
-        parser.add_argument('--num_false_examples', type=int, default=1,
-                            help='What is the maximum number of false completion examples to test for each true example')
         parser.set_defaults(dataset_name='puzzle_test')
 
         return parser

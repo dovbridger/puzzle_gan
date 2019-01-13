@@ -14,6 +14,10 @@ class PuzzleGanModel(BaseModel):
         # changing the default values to match the pix2pix paper
         # (https://phillipi.github.io/pix2pix/)
         parser.set_defaults(pool_size=0, no_lsgan=True, norm='batch')
+        parser.add_argument('--discriminator_window', type=int, default=16,
+                            help='Width of the centered window that will be fed to the discriminator')
+        parser.add_argument('--generator_window', type=int, default=32,
+                            help='Width of the centered window where the generated pixels will remain, the rest will be ignored')
         if is_train:
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
 
@@ -21,6 +25,10 @@ class PuzzleGanModel(BaseModel):
 
     def initialize(self, opt):
         BaseModel.initialize(self, opt)
+        assert opt.generator_window > 2 * opt.burn_extent,\
+            "The generator window({0}) is not large enough to inpaint the burnt area".format(opt.generator_window, 2 * opt.burn_extent)
+        assert opt.generator_window >= opt.discriminator_window,\
+            "The descriminator window({0}) should not be smaller than the generator window({1})".format(opt.discriminator_window, opt.generator_window)
         self.isTrain = opt.isTrain
         # specify the training losses you want to print out. The program will call base_model.get_current_losses
         # self.loss_<item> must exist for every <item> in self.loss_names
@@ -40,8 +48,6 @@ class PuzzleGanModel(BaseModel):
             use_sigmoid = opt.no_lsgan
             self.netD = networks.get_descriminator(opt.input_nc + opt.output_nc, opt.ndf, use_sigmoid, opt.init_type,
                                                    opt.init_gain, self.gpu_ids)
-
-        if self.isTrain:
             self.burnt_and_fake_pool = ImagePool(opt.pool_size)
             # define loss functions
             self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan).to(self.device)
@@ -81,12 +87,12 @@ class PuzzleGanModel(BaseModel):
         self.loss_D.backward()
 
     def backward_G(self):
-        # First, G(A) should fake the discriminator
+        # First, G(burnt) should fool the discriminator
         burnt_cat_fake = torch.cat((self.burnt, self.fake), 1)
         pred_fake = self.netD(burnt_cat_fake)
         self.loss_G_GAN = self.criterionGAN(pred_fake, True)
 
-        # Second, G(A) = B
+        # Second, G(burnt) = real
         self.loss_G_L1 = self.criterionL1(self.fake, self.real) * self.opt.lambda_L1
 
         self.loss_G = self.loss_G_GAN + self.loss_G_L1

@@ -6,22 +6,38 @@ from PIL import Image
 
 
 class PuzzleDataset(BaseDataset):
+    '''
+    Dov's implementation of a dataset to be used for the puzzle problem
+    '''
     @staticmethod
     def modify_commandline_options(parser, is_train):
-        parser.add_argument('--burn_extent', type=int, default=3,
+        # How many pixels will be missing from each edge of a puzzle part
+        # (The hole between two parts will be 2 * burn_extent)
+        parser.add_argument('--burn_extent', type=int, default=2,
                             help='Number of pixel columns missing on the edge of each puzzle piece')
         return parser
 
     def initialize(self, opt):
         self.opt = opt
         self.root = opt.dataroot
+
+        # The folder containing images of true adjacent puzzle pieces according to 'opt.phase' (train / test)
         self.phase_folder_true = os.path.join(self.root, opt.phase, 'True')
-        self.phase_folder_false = os.path.join(self.root, opt.phase, 'False')
+
+        # Paths of the images of true adjacent puzzle pieces
         self.true_paths = sorted(make_dataset(self.phase_folder_true))
-        self.false_paths = sorted(make_dataset(self.phase_folder_false))
+
+        # Transformations that need to be done on input images before feeding them to the network
         self.transform = get_transform(opt)
 
     def __getitem__(self, index):
+        '''
+        get a single example from from the dataset
+        :param index: index of them image you want (images are sorted according to path)
+        :return: dict containing the real image (round truth), the burnt image (real minus the pixels that are burnt)
+                 and the path.
+        '''
+
         path = self.true_paths[index]
         real_image = self.get_real_image(path)
         burnt_image = self.burn_image(real_image)
@@ -33,9 +49,11 @@ class PuzzleDataset(BaseDataset):
 
     def get_real_image(self, path):
         original_img = Image.open(path).convert('RGB')
+        # Perform the transformations
         real_image = self.transform(original_img)
 
-        if self.opt.input_nc == 1:  # RGB to gray
+        # If number of input channels requested is 1, convert RGB to gray
+        if self.opt.input_nc == 1:
             tmp = real_image[0, ...] * 0.299 + \
                   real_image[1, ...] * 0.587 + \
                   real_image[2, ...] * 0.114
@@ -43,16 +61,17 @@ class PuzzleDataset(BaseDataset):
         return real_image
 
     def burn_image(self, real_image):
+        '''
+        Sets a (2 * opt.burn_extent) column of pixels to -1 in the center of a cloned instance of real_image
+        :param real_image: The input image
+        :return: The burnt image
+        '''
         burnt_image = torch.clone(real_image)
         channels, height, width = burnt_image.shape
         center = int(width / 2)
         burn_extent = self.opt.burn_extent
         burnt_image[:, :, center - burn_extent: center + burn_extent] = -1
         return burnt_image
-
-    def get_false_paths(self, true_path):
-        file_name_true_without_extension = os.path.basename(true_path).split('.')[0]
-        return [file for file in self.false_paths if os.path.basename(file).startswith(file_name_true_without_extension)]
 
     def name(self):
         return 'PuzzleDataset'
