@@ -15,9 +15,9 @@ class PuzzleGanModel(BaseModel):
         # changing the default values to match the pix2pix paper
         # (https://phillipi.github.io/pix2pix/)
         parser.set_defaults(pool_size=0, no_lsgan=True, norm='batch')
-        parser.add_argument('--discriminator_window', type=int, default=16,
+        parser.add_argument('--discriminator_window', type=int, default=32,
                             help='Width of the centered window that will be fed to the discriminator (Not implemented yet)')
-        parser.add_argument('--generator_window', type=int, default=32,
+        parser.add_argument('--generator_window', type=int, default=4,
                             help='Width of the centered window where the generated pixels will remain, the rest will be ignored (Not implemented yet)')
         if is_train:
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
@@ -26,10 +26,9 @@ class PuzzleGanModel(BaseModel):
 
     def initialize(self, opt):
         BaseModel.initialize(self, opt)
-        assert opt.generator_window > 2 * opt.burn_extent,\
-            "The generator window({0}) is not large enough to inpaint the burnt area".format(opt.generator_window, 2 * opt.burn_extent)
-        #assert opt.generator_window >= opt.discriminator_window,\
-        #    "The descriminator window({0}) should not be larger than the generator window({1})".format(opt.discriminator_window, opt.generator_window)
+        assert opt.generator_window >= 2 * opt.burn_extent,\
+            "The generator window({0}) is not large enough to inpaint the burnt area({1})".format(opt.generator_window, 2 * opt.burn_extent)
+        assert opt.discriminator_window % 32 == 0, "Discriminator window must be a multiple of 32, curret is {0}".format(opt.discriminator_window)
         self.isTrain = opt.isTrain
 
         # specify the training losses you want to print out. The program will call base_model.get_current_losses
@@ -74,14 +73,14 @@ class PuzzleGanModel(BaseModel):
     def forward(self):
         self.fake = self.netG(self.burnt)
 
-        #window_start, window_end = self.descriminator_window_indexes
-        #self.burnt_in_discriminator_window = self.burnt#[:, :, :, window_start:window_end]
-       # self.fake_in_discriminator_window = self.fake#[:, :, :, window_start:window_end]
-        #self.real_in_discriminator_window = self.real#[:, :, :, window_start:window_end]
+        window_start, window_end = self.descriminator_window_indexes
+        self.burnt_in_discriminator_window = self.burnt[:, :, :, window_start:window_end]
+        self.fake_in_discriminator_window = self.fake[:, :, :, window_start:window_end]
+        self.real_in_discriminator_window = self.real[:, :, :, window_start:window_end]
 
     def backward_D(self):
-        burnt_and_fake = self.burnt_and_fake_pool.query(torch.cat((self.burnt,
-                                                                   self.fake), 1))
+        burnt_and_fake = self.burnt_and_fake_pool.query(torch.cat((self.burnt_in_discriminator_window,
+                                                                   self.fake_in_discriminator_window), 1))
         # stop backprop to the generator by detaching 'burnt_and_fake'
         pred_fake = self.netD(burnt_and_fake.detach())
         self.loss_D_fake = self.criterionGAN(pred_fake, False)

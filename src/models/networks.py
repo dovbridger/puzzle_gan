@@ -322,6 +322,6 @@ def get_generator(opt):
 
 
 def get_descriminator(opt):
-    netD = NLayerDiscriminator(opt.input_nc, opt.ndf,
+    netD = NLayerDiscriminator(opt.input_nc + opt.output_nc, opt.ndf,
                                n_layers=3, norm_layer=get_norm_layer(opt.norm), use_sigmoid=opt.no_lsgan)
     return init_net(netD, opt.init_type, opt.init_gain, opt.gpu_ids)
