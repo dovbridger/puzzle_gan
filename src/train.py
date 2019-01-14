@@ -15,19 +15,15 @@ if __name__ == '__main__':
     model.setup(opt)
     visualizer = Visualizer(opt)
     total_steps = 0
-
+    # key - action to be performed, value - the value the step counter needs to reach before performing the action
+    next_action = {'display': opt.display_freq, 'print': 0, 'update_html': opt.update_html_freq,
+                   'save_latest': opt.save_latest_freq, 'save_epoch': opt.save_epoch_freq}
     for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
         epoch_start_time = time.time()
         iter_data_time = time.time()
         epoch_iter = 0
-        # key - action to be performed, value - the value the step counter needs to reach before performing the action
-        next_action = {'display': opt.display_freq, 'print': 0, 'update_html': opt.update_html_freq,
-                       'save_latest': opt.save_latest_freq, 'save_epoch': opt.save_epoch_freq}
         for i, data in enumerate(dataset):
             iter_start_time = time.time()
-            if total_steps >= next_action['print']:
-                # Save the time because we are going to print during this iteration
-                t_data = iter_start_time - iter_data_time
             visualizer.reset()
             total_steps += opt.batchSize
             epoch_iter += opt.batchSize
@@ -44,7 +40,7 @@ if __name__ == '__main__':
             if total_steps >= next_action['print']:
                 losses = model.get_current_losses()
                 t = (time.time() - iter_start_time) / opt.batchSize
-                visualizer.print_current_losses(epoch, epoch_iter, losses, t, t_data)
+                visualizer.print_current_losses(epoch, epoch_iter, losses, t, iter_start_time - iter_data_time)
                 if opt.display_id > 0:
                     visualizer.plot_current_losses(epoch, float(epoch_iter) / dataset_size, opt, losses)
                 next_action['print'] = next_action['print'] + opt.print_freq

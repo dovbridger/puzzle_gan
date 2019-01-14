@@ -1,5 +1,6 @@
 import torch
 from utils.image_pool import ImagePool
+from utils.util import  get_centered_window_indexes
 import models.networks as networks
 from models.base_model import BaseModel
 
@@ -14,9 +15,9 @@ class PuzzleGanModel(BaseModel):
         # changing the default values to match the pix2pix paper
         # (https://phillipi.github.io/pix2pix/)
         parser.set_defaults(pool_size=0, no_lsgan=True, norm='batch')
-        parser.add_argument('--discriminator_window', type=int, default=16,
+        parser.add_argument('--discriminator_window', type=int, default=32,
                             help='Width of the centered window that will be fed to the discriminator (Not implemented yet)')
-        parser.add_argument('--generator_window', type=int, default=32,
+        parser.add_argument('--generator_window', type=int, default=4,
                             help='Width of the centered window where the generated pixels will remain, the rest will be ignored (Not implemented yet)')
         if is_train:
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
@@ -25,10 +26,9 @@ class PuzzleGanModel(BaseModel):
 
     def initialize(self, opt):
         BaseModel.initialize(self, opt)
-        assert opt.generator_window > 2 * opt.burn_extent,\
-            "The generator window({0}) is not large enough to inpaint the burnt area".format(opt.generator_window, 2 * opt.burn_extent)
-        assert opt.generator_window >= opt.discriminator_window,\
-            "The descriminator window({0}) should not be smaller than the generator window({1})".format(opt.discriminator_window, opt.generator_window)
+        assert opt.generator_window >= 2 * opt.burn_extent,\
+            "The generator window({0}) is not large enough to inpaint the burnt area({1})".format(opt.generator_window, 2 * opt.burn_extent)
+        assert opt.discriminator_window % 32 == 0, "Discriminator window must be a multiple of 32, curret is {0}".format(opt.discriminator_window)
         self.isTrain = opt.isTrain
 
         # specify the training losses you want to print out. The program will call base_model.get_current_losses
@@ -46,12 +46,9 @@ class PuzzleGanModel(BaseModel):
             self.model_names = ['G']
 
         # load/define networks
-        self.netG = networks.get_generator(opt.input_nc, opt.output_nc, opt.ngf, opt.norm, opt.init_type, opt.init_gain,
-                                           self.gpu_ids, opt.generator_window)
+        self.netG = networks.get_generator(opt)
         if self.isTrain:
-            use_sigmoid = opt.no_lsgan
-            self.netD = networks.get_descriminator(opt.input_nc + opt.output_nc, opt.ndf, opt.norm, use_sigmoid, opt.init_type,
-                                                   opt.init_gain, self.gpu_ids)
+            self.netD = networks.get_descriminator(opt)
             self.burnt_and_fake_pool = ImagePool(opt.pool_size)
 
             # define loss functions
@@ -66,6 +63,7 @@ class PuzzleGanModel(BaseModel):
                                                 lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
+            self.descriminator_window_indexes = get_centered_window_indexes(opt.fineSize[1], opt.discriminator_window)
 
     def set_input(self, input):
         self.real = input['real'].to(self.device)
@@ -75,14 +73,21 @@ class PuzzleGanModel(BaseModel):
     def forward(self):
         self.fake = self.netG(self.burnt)
 
+        window_start, window_end = self.descriminator_window_indexes
+        self.burnt_in_discriminator_window = self.burnt[:, :, :, window_start:window_end]
+        self.fake_in_discriminator_window = self.fake[:, :, :, window_start:window_end]
+        self.real_in_discriminator_window = self.real[:, :, :, window_start:window_end]
+
     def backward_D(self):
+        burnt_and_fake = self.burnt_and_fake_pool.query(torch.cat((self.burnt_in_discriminator_window,
+                                                                   self.fake_in_discriminator_window), 1))
         # stop backprop to the generator by detaching 'burnt_and_fake'
-        burnt_and_fake = self.burnt_and_fake_pool.query(torch.cat((self.burnt, self.fake), 1))
         pred_fake = self.netD(burnt_and_fake.detach())
         self.loss_D_fake = self.criterionGAN(pred_fake, False)
 
         # Real
-        burnt_and_real = torch.cat((self.burnt, self.real), 1)
+        burnt_and_real = torch.cat((self.burnt_in_discriminator_window,
+                                    self.real_in_discriminator_window), 1)
         pred_real = self.netD(burnt_and_real)
         self.loss_D_real = self.criterionGAN(pred_real, True)
 
@@ -92,12 +97,14 @@ class PuzzleGanModel(BaseModel):
 
     def backward_G(self):
         # First, G(burnt) should fool the discriminator
-        burnt_cat_fake = torch.cat((self.burnt, self.fake), 1)
-        pred_fake = self.netD(burnt_cat_fake)
+        burnt_and_fake = torch.cat((self.burnt_in_discriminator_window, self.fake_in_discriminator_window), 1)
+        pred_fake = self.netD(burnt_and_fake)
         self.loss_G_GAN = self.criterionGAN(pred_fake, True)
 
         # Second, G(burnt) = real
-        self.loss_G_L1 = self.criterionL1(self.fake, self.real) * self.opt.lambda_L1
+        fake_in_generated_window = self.fake[:, :, :, self.netG.generated_columns_start:self.netG.generated_columns_end]
+        real_in_generated_window = self.real[:, :, :, self.netG.generated_columns_start:self.netG.generated_columns_end]
+        self.loss_G_L1 = self.criterionL1(fake_in_generated_window, real_in_generated_window) * self.opt.lambda_L1
 
         self.loss_G = self.loss_G_GAN + self.loss_G_L1
 

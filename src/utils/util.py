@@ -58,3 +58,9 @@ def mkdirs(paths):
 def mkdir(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
+def get_centered_window_indexes(initial_size, required_window_size):
+    center = int(initial_size / 2)
+    window_start = center - int(required_window_size / 2)
+    window_end = window_start + required_window_size
+    return (window_start, window_end)
