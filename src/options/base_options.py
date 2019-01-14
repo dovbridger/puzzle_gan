@@ -19,7 +19,7 @@ class BaseOptions():
     def initialize(self, parser):
         model = 'puzzle_gan'
         task = 'puzzle_try'
-        experiment_name = 'e3'
+        experiment_name = 'no_burnt'
         loadSize = (64, 128)
         fine_size = (64, 128)
         data_root = os.path.join(self.project_root, 'datasets', 'puzzle_parts')

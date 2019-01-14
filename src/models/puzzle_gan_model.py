@@ -19,6 +19,8 @@ class PuzzleGanModel(BaseModel):
                             help='Width of the centered window that will be fed to the discriminator (Not implemented yet)')
         parser.add_argument('--generator_window', type=int, default=4,
                             help='Width of the centered window where the generated pixels will remain, the rest will be ignored (Not implemented yet)')
+        parser.add_argument('--provide_burnt', action='store_true',
+                            help='Provide the burnt image as input for the discriminator along with the (fake / real) image')
         if is_train:
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
 
@@ -79,16 +81,24 @@ class PuzzleGanModel(BaseModel):
         self.real_in_discriminator_window = self.real[:, :, :, window_start:window_end]
 
     def backward_D(self):
-        burnt_and_fake = self.burnt_and_fake_pool.query(torch.cat((self.burnt_in_discriminator_window,
-                                                                   self.fake_in_discriminator_window), 1))
-        # stop backprop to the generator by detaching 'burnt_and_fake'
-        pred_fake = self.netD(burnt_and_fake.detach())
+        if self.opt.provide_burnt:
+            discriminator_fake_input = self.burnt_and_fake_pool.query(torch.cat((self.burnt_in_discriminator_window,
+                                                                                 self.fake_in_discriminator_window), 1))
+        else:
+            discriminator_fake_input = self.fake_in_discriminator_window
+
+        # stop backprop to the generator by detaching 'discriminator_fake_input'
+        pred_fake = self.netD(discriminator_fake_input.detach())
         self.loss_D_fake = self.criterionGAN(pred_fake, False)
 
         # Real
-        burnt_and_real = torch.cat((self.burnt_in_discriminator_window,
-                                    self.real_in_discriminator_window), 1)
-        pred_real = self.netD(burnt_and_real)
+        if self.opt.provide_burnt:
+            discriminator_real_input = torch.cat((self.burnt_in_discriminator_window,
+                                                  self.real_in_discriminator_window), 1)
+        else:
+            discriminator_real_input = self.real_in_discriminator_window
+
+        pred_real = self.netD(discriminator_real_input)
         self.loss_D_real = self.criterionGAN(pred_real, True)
 
         # Combined loss
@@ -97,8 +107,12 @@ class PuzzleGanModel(BaseModel):
 
     def backward_G(self):
         # First, G(burnt) should fool the discriminator
-        burnt_and_fake = torch.cat((self.burnt_in_discriminator_window, self.fake_in_discriminator_window), 1)
-        pred_fake = self.netD(burnt_and_fake)
+        if self.opt.provide_burnt:
+            discriminator_fake_input = torch.cat((self.burnt_in_discriminator_window,
+                                                  self.fake_in_discriminator_window), 1)
+        else:
+            discriminator_fake_input = self.fake_in_discriminator_window
+        pred_fake = self.netD(discriminator_fake_input)
         self.loss_G_GAN = self.criterionGAN(pred_fake, True)
 
         # Second, G(burnt) = real
