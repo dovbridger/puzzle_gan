@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import functools
 from torch.optim import lr_scheduler
+from utils.util import get_centered_window_indexes
 
 
 class UnetLeftBlock(nn.Module):
@@ -84,9 +85,10 @@ class UnetGenerator(nn.Module):
     64 x 128 x 3 at the end of the decoder
     Skip connections between encoder and decoder layers of same size are implemented in the 'forward' method
     '''
-    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, generator_window=None):
+    def __init__(self, input_nc, output_nc, generator_window, input_width, ngf=64, norm_layer=nn.BatchNorm2d):
         super(UnetGenerator, self).__init__()
-        self.generator_window = generator_window
+        self.generated_columns_start, self.generated_columns_end = get_centered_window_indexes(input_width,
+                                                                                               generator_window)
 
         # 64 x 128 in -> 32 x 64 out
         self.layer0_d = UnetLeftBlock(input_nc, ngf, norm_layer=norm_layer)
@@ -146,17 +148,10 @@ class UnetGenerator(nn.Module):
         self.layer1_u_out = self.layer1_u(in_1)
         in_0 = torch.cat([self.layer1_u_out, self.layer0_d_out], 1)
         self.layer0_u_out = self.layer0_u(in_0)
-        self.final_output = self.layer0_u_out
 
-        # This code doesn't work yet so don't use it
-        if False and self.generator_window is not None:
-            width_center = int(self.layer0_u_out.size()[3] / 2)
-            generated_columns_start = int(width_center - self.generator_window / 2)
-            generated_columns_end = generated_columns_start + self.generator_window
-            # For some reason the indexing only works on the first dimension(0), so this code is not right
-            self.final_output = torch.cat([input[0:generated_columns_start][:][:][:],
-                                           self.layer0_u_out[:][:][:][generated_columns_start:generated_columns_end],
-                                           input[:][:][:][generated_columns_end:]], 3)
+        self.final_output = torch.cat([input[:, :, :, 0:self.generated_columns_start],
+                                       self.layer0_u_out[:, :, :, self.generated_columns_start:self.generated_columns_end],
+                                       input[:, :, :, self.generated_columns_end:]], 3)
         return self.final_output
 
 def get_norm_layer(norm_type='instance'):
@@ -320,12 +315,13 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     net = net.cuda()
     return net
 
-def get_generator(input_nc, output_nc, ngf, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[],
-                  generator_window=None):
-    netG = UnetGenerator(input_nc, output_nc, ngf=ngf, norm_layer=get_norm_layer(norm), generator_window=generator_window)
-    return init_net(netG, init_type, init_gain, gpu_ids)
+def get_generator(opt):
+    netG = UnetGenerator(opt.input_nc, opt.output_nc, opt.generator_window, opt.fineSize[1],
+                         ngf=opt.ngf, norm_layer=get_norm_layer(opt.norm))
+    return init_net(netG, opt.init_type, opt.init_gain, opt.gpu_ids)
 
 
-def get_descriminator(input_nc, ndf, norm='batch', use_sigmoid=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
-    netD = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=get_norm_layer(norm), use_sigmoid=use_sigmoid)
-    return init_net(netD, init_type, init_gain, gpu_ids)
+def get_descriminator(opt):
+    netD = NLayerDiscriminator(opt.input_nc, opt.ndf,
+                               n_layers=3, norm_layer=get_norm_layer(opt.norm), use_sigmoid=opt.no_lsgan)
+    return init_net(netD, opt.init_type, opt.init_gain, opt.gpu_ids)
