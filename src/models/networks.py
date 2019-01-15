@@ -9,7 +9,7 @@ class UnetLeftBlock(nn.Module):
     '''
      An Encoder block that performs the required normalization, a convolution, and activation
     '''
-    def __init__(self, input_nc, output_nc, innermost=False, norm_layer=nn.BatchNorm2d):
+    def __init__(self, input_nc, output_nc, innermost=False, norm_layer=nn.BatchNorm2d, kernel_size=4):
         '''
 
         :param input_nc: number of input channels
@@ -24,7 +24,7 @@ class UnetLeftBlock(nn.Module):
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
         # With these parameters the width and height of the output will be half of the input's
-        self.downconv = nn.Conv2d(input_nc, output_nc, kernel_size=4, stride=2, padding=1, bias=use_bias)
+        self.downconv = nn.Conv2d(input_nc, output_nc, kernel_size=kernel_size, stride=2, padding=1, bias=use_bias)
         if not innermost:
             self.downnorm = norm_layer(output_nc)
             self.downrelu = nn.LeakyReLU(0.2, True)
@@ -44,7 +44,7 @@ class UnetRightBlock(nn.Module):
     '''
     A decoder block that performs the required normalization, a de-convolution, and activation
     '''
-    def __init__(self, input_nc, output_nc, outermost=False, norm_layer=nn.BatchNorm2d):
+    def __init__(self, input_nc, output_nc, outermost=False, norm_layer=nn.BatchNorm2d, kernel_size=4):
         '''
         :param input_nc: number of input channels
         :param output_nc: number of output channels
@@ -58,7 +58,7 @@ class UnetRightBlock(nn.Module):
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
         # With these parameters the width and height of the output will be twice as the input's
-        self.upconv = nn.ConvTranspose2d(input_nc, output_nc, kernel_size=4, stride=2, padding=1, bias=use_bias)
+        self.upconv = nn.ConvTranspose2d(input_nc, output_nc, kernel_size=kernel_size, stride=2, padding=1, bias=use_bias)
         if not outermost:
             self.upnorm = norm_layer(output_nc)
             self.uprelu = nn.ReLU(True)
@@ -85,35 +85,35 @@ class UnetGenerator(nn.Module):
     64 x 128 x 3 at the end of the decoder
     Skip connections between encoder and decoder layers of same size are implemented in the 'forward' method
     '''
-    def __init__(self, input_nc, output_nc, generator_window, input_width, ngf=64, norm_layer=nn.BatchNorm2d):
+    def __init__(self, input_nc, output_nc, generator_window, input_width, ngf=64, norm_layer=nn.BatchNorm2d, kernel_size=4):
         super(UnetGenerator, self).__init__()
         self.generated_columns_start, self.generated_columns_end = get_centered_window_indexes(input_width,
                                                                                                generator_window)
 
         # 64 x 128 in -> 32 x 64 out
-        self.layer0_d = UnetLeftBlock(input_nc, ngf, norm_layer=norm_layer)
+        self.layer0_d = UnetLeftBlock(input_nc, ngf, norm_layer=norm_layer, kernel_size=kernel_size)
         # 32 x 64 in -> 16 x 32 out
-        self.layer1_d = UnetLeftBlock(ngf, ngf*2, norm_layer=norm_layer)
+        self.layer1_d = UnetLeftBlock(ngf, ngf*2, norm_layer=norm_layer, kernel_size=kernel_size)
         # 16 x 32 in -> 8 x 16 out
-        self.layer2_d = UnetLeftBlock(ngf*2, ngf*4, norm_layer=norm_layer)
+        self.layer2_d = UnetLeftBlock(ngf*2, ngf*4, norm_layer=norm_layer, kernel_size=kernel_size)
         # 8 x 16 in -> 4 x 8 out
-        self.layer3_d = UnetLeftBlock(ngf*4, ngf*8, norm_layer=norm_layer)
+        self.layer3_d = UnetLeftBlock(ngf*4, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
         # 4 x 8 in -> 2 x 4 out
-        self.layer4_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer)
+        self.layer4_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
         # 2 x 4 in -> 1 x 2 out
-        self.middle_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer, innermost=True)
+        self.middle_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size, innermost=True)
         # 1 x 2 in -> 2 x 4 out
-        self.middle_u = UnetRightBlock(ngf*8, ngf*8, norm_layer=norm_layer)
+        self.middle_u = UnetRightBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
         # 2 x 4 in -> 4 x 8 out
-        self.layer4_u = UnetRightBlock(ngf*8*2, ngf*8, norm_layer=norm_layer)
+        self.layer4_u = UnetRightBlock(ngf*8*2, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
         # 4 x 8 in -> 8 x 16 out
-        self.layer3_u = UnetRightBlock(ngf*8*2, ngf*4, norm_layer=norm_layer)
+        self.layer3_u = UnetRightBlock(ngf*8*2, ngf*4, norm_layer=norm_layer, kernel_size=kernel_size)
         # 8 x 16 in -> 16 x 32 out
-        self.layer2_u = UnetRightBlock(ngf*4*2, ngf*2, norm_layer=norm_layer)
+        self.layer2_u = UnetRightBlock(ngf*4*2, ngf*2, norm_layer=norm_layer, kernel_size=kernel_size)
         # 16 x 32 in -> 32 x 64 out
-        self.layer1_u = UnetRightBlock(ngf*2*2, ngf, norm_layer=norm_layer)
+        self.layer1_u = UnetRightBlock(ngf*2*2, ngf, norm_layer=norm_layer, kernel_size=kernel_size)
         # 32 x 64 in -> 64 x 128 out
-        self.layer0_u = UnetRightBlock(ngf*2, output_nc, norm_layer=norm_layer, outermost=True)
+        self.layer0_u = UnetRightBlock(ngf*2, output_nc, norm_layer=norm_layer, kernel_size=kernel_size, outermost=True)
 
         self.layer0_d_out = self.layer1_d_out = self.layer2_d_out = self.layer3_d_out =\
             self.layer4_d_out = self.middle_d_in = None
@@ -317,7 +317,7 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
 
 def get_generator(opt):
     netG = UnetGenerator(opt.input_nc, opt.output_nc, opt.generator_window, opt.fineSize[1],
-                         ngf=opt.ngf, norm_layer=get_norm_layer(opt.norm))
+                         ngf=opt.ngf, norm_layer=get_norm_layer(opt.norm), kernel_size=opt.kernel_size)
     return init_net(netG, opt.init_type, opt.init_gain, opt.gpu_ids)
 
 

@@ -56,7 +56,7 @@ class BaseOptions():
         parser.add_argument('--verbose', action='store_true', help='if specified, print more debugging information')
         parser.add_argument('--suffix', default='', type=str, help='customized suffix: opt.name = opt.name + suffix')
         parser.add_argument('--display_ncols', type=int, default=1, help='if positive, display all images in a single visdom web panel with certain number of images per row.')
-
+        parser.add_argument('--kernel_size', type=int, default=4, help='Conv and Deconv kernel size')
         self.initialized = True
         return parser
 
