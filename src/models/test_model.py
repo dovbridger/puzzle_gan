@@ -2,6 +2,7 @@ from .base_model import BaseModel
 from . import networks
 from .puzzle_gan_model import PuzzleGanModel
 import torch
+from utils.network_utils import get_discriminator_input
 
 
 class TestModel(BaseModel):
@@ -68,14 +69,14 @@ class TestModel(BaseModel):
 
     def forward(self):
         self.fake_true = self.netG(self.burnt_true)
-        self.true_probability = self.netD(torch.cat((self.burnt_true, self.fake_true), 1)).mean().item()
+        self.true_probability = self.netD(get_discriminator_input(self.opt, self.burnt_true, self.fake_true))
         self.false_probability = []
         # Create as many fake images as there exist false neighbor examples
         for i in range(self.opt.num_false_examples):
             burnt_false = getattr(self, 'burnt_false_' + str(i))
             if burnt_false is not None:
                 fake_false = self.netG(burnt_false)
-                self.false_probability.append(self.netD(torch.cat((burnt_false, fake_false), 1)).mean().item())
+                self.false_probability.append(self.netD(get_discriminator_input(self.opt, burnt_false, fake_false)))
                 setattr(self, 'fake_false_' + str(i), fake_false)
             else:
                 setattr(self, 'fake_false_' + str(i), None)
@@ -85,6 +86,6 @@ class TestModel(BaseModel):
             false_probability = 0
         else:
             from numpy import mean
-            false_probability = mean(self.false_probability)
-        return {'True': self.true_probability, 'False': false_probability}
+            false_probability = mean([x.mean().item() for x in self.false_probability])
+        return {'True': self.true_probability.mean().item(), 'False': false_probability}
 
