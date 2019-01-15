@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import functools
 from torch.optim import lr_scheduler
-from utils.util import get_centered_window_indexes
+from utils.network_utils import get_centered_window_indexes
 
 
 class UnetLeftBlock(nn.Module):
@@ -321,7 +321,7 @@ def get_generator(opt):
     return init_net(netG, opt.init_type, opt.init_gain, opt.gpu_ids)
 
 
-def get_descriminator(opt):
+def get_discriminator(opt):
     discriminator_input_nc = opt.output_nc
     if opt.provide_burnt:
         discriminator_input_nc += opt.input_nc

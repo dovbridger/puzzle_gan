@@ -1,6 +1,6 @@
 import torch
 from utils.image_pool import ImagePool
-from utils.util import  get_centered_window_indexes
+from utils.network_utils import  get_discriminator_input
 import models.networks as networks
 from models.base_model import BaseModel
 
@@ -15,9 +15,9 @@ class PuzzleGanModel(BaseModel):
         # changing the default values to match the pix2pix paper
         # (https://phillipi.github.io/pix2pix/)
         parser.set_defaults(pool_size=0, no_lsgan=True, norm='batch')
-        parser.add_argument('--discriminator_window', type=int, default=32,
+        parser.add_argument('--discriminator_window', type=int, default=128,
                             help='Width of the centered window that will be fed to the discriminator (Not implemented yet)')
-        parser.add_argument('--generator_window', type=int, default=4,
+        parser.add_argument('--generator_window', type=int, default=128,
                             help='Width of the centered window where the generated pixels will remain, the rest will be ignored (Not implemented yet)')
         parser.add_argument('--provide_burnt', action='store_true',
                             help='Provide the burnt image as input for the discriminator along with the (fake / real) image')
@@ -50,7 +50,7 @@ class PuzzleGanModel(BaseModel):
         # load/define networks
         self.netG = networks.get_generator(opt)
         if self.isTrain:
-            self.netD = networks.get_descriminator(opt)
+            self.netD = networks.get_discriminator(opt)
             self.burnt_and_fake_pool = ImagePool(opt.pool_size)
 
             # define loss functions
@@ -65,7 +65,7 @@ class PuzzleGanModel(BaseModel):
                                                 lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
-            self.descriminator_window_indexes = get_centered_window_indexes(opt.fineSize[1], opt.discriminator_window)
+
 
     def set_input(self, input):
         self.real = input['real'].to(self.device)
@@ -75,28 +75,14 @@ class PuzzleGanModel(BaseModel):
     def forward(self):
         self.fake = self.netG(self.burnt)
 
-        window_start, window_end = self.descriminator_window_indexes
-        self.burnt_in_discriminator_window = self.burnt[:, :, :, window_start:window_end]
-        self.fake_in_discriminator_window = self.fake[:, :, :, window_start:window_end]
-        self.real_in_discriminator_window = self.real[:, :, :, window_start:window_end]
-
     def backward_D(self):
-        if self.opt.provide_burnt:
-            discriminator_fake_input = self.burnt_and_fake_pool.query(torch.cat((self.burnt_in_discriminator_window,
-                                                                                 self.fake_in_discriminator_window), 1))
-        else:
-            discriminator_fake_input = self.fake_in_discriminator_window
-
+        discriminator_fake_input = self.burnt_and_fake_pool.query(get_discriminator_input(self.opt, self.burnt, self.fake))
         # stop backprop to the generator by detaching 'discriminator_fake_input'
         pred_fake = self.netD(discriminator_fake_input.detach())
         self.loss_D_fake = self.criterionGAN(pred_fake, False)
 
         # Real
-        if self.opt.provide_burnt:
-            discriminator_real_input = torch.cat((self.burnt_in_discriminator_window,
-                                                  self.real_in_discriminator_window), 1)
-        else:
-            discriminator_real_input = self.real_in_discriminator_window
+        discriminator_real_input = get_discriminator_input(self.opt, self.burnt, self.fake)
 
         pred_real = self.netD(discriminator_real_input)
         self.loss_D_real = self.criterionGAN(pred_real, True)
@@ -107,11 +93,7 @@ class PuzzleGanModel(BaseModel):
 
     def backward_G(self):
         # First, G(burnt) should fool the discriminator
-        if self.opt.provide_burnt:
-            discriminator_fake_input = torch.cat((self.burnt_in_discriminator_window,
-                                                  self.fake_in_discriminator_window), 1)
-        else:
-            discriminator_fake_input = self.fake_in_discriminator_window
+        discriminator_fake_input = get_discriminator_input(self.opt, self.burnt, self.fake)
         pred_fake = self.netD(discriminator_fake_input)
         self.loss_G_GAN = self.criterionGAN(pred_fake, True)
 

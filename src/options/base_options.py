@@ -21,14 +21,14 @@ class BaseOptions():
         task = 'puzzle_try'
         experiment_name = 'no_burnt'
         loadSize = (64, 128)
-        fine_size = (64, 128)
+        self.fine_size = (64, 128)
         data_root = os.path.join(self.project_root, 'datasets', 'puzzle_parts')
         batchSize = 64
         dataset_name = 'puzzle'
         parser.add_argument('--dataroot', type=str, default=data_root, help='path to images (should have subfolders train, validation, test)')
         parser.add_argument('--batchSize', type=int, default=batchSize, help='input batch size')
         parser.add_argument('--loadSize', type=int, default=loadSize, help='scale images to this size')
-        parser.add_argument('--fineSize', type=int, default=fine_size, help='then crop to this size')
+        parser.add_argument('--fineSize', type=int, default=self.fine_size, help='then crop to this size')
         parser.add_argument('--input_nc', type=int, default=3, help='# of input image channels')
         parser.add_argument('--output_nc', type=int, default=3, help='# of output image channels')
         parser.add_argument('--ngf', type=int, default=64, help='# of gen filters in first conv layer')
@@ -55,6 +55,7 @@ class BaseOptions():
         parser.add_argument('--init_gain', type=float, default=0.02, help='scaling factor for normal, xavier and orthogonal.')
         parser.add_argument('--verbose', action='store_true', help='if specified, print more debugging information')
         parser.add_argument('--suffix', default='', type=str, help='customized suffix: opt.name = opt.name + suffix')
+        parser.add_argument('--display_ncols', type=int, default=1, help='if positive, display all images in a single visdom web panel with certain number of images per row.')
 
         self.initialized = True
         return parser
