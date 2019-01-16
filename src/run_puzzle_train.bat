@@ -1,0 +1,3 @@
+python train.py --name puzzle_example_burn8 --burn_extent 8 --dataroot ../datasets/puzzle_parts --niter 40 --niter_decay 20 --generator_window 16 --discriminator_window 32
+python train.py --name puzzle_example_burn4 --burn_extent 4 --dataroot ../datasets/puzzle_parts --niter 40 --niter_decay 20 --generator_window 8 --discriminator_window 32
+python train.py --name puzzle_example_burn2 --burn_extent 2 --dataroot ../datasets/puzzle_parts --niter 40 --niter_decay 20 --generator_window 4 --discriminator_window 32

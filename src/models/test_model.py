@@ -1,6 +1,8 @@
 from .base_model import BaseModel
 from . import networks
 from .puzzle_gan_model import PuzzleGanModel
+import torch
+from utils.network_utils import get_discriminator_input
 
 
 class TestModel(BaseModel):
@@ -15,7 +17,9 @@ class TestModel(BaseModel):
                             help='In checkpoints_dir, [which_epoch]_net_G[model_suffix].pth will'
                             ' be loaded as the generator of TestModel')
         parser.set_defaults(dataset_name='puzzle_test')
-
+        parser.add_argument('--discriminator_test', action='store_true',
+                            help='Whether or not to include the discriminator in the test to measure true/false neighbor'
+                                 'identification')
         return parser
 
     def initialize(self, opt):
@@ -23,13 +27,14 @@ class TestModel(BaseModel):
         BaseModel.initialize(self, opt)
 
         # specify the training losses you want to print out. The program will call base_model.get_current_losses
-        self.loss_names = []
+        self.loss_names = ['D_fake_true', 'D_fake_false']
         # specify the images you want to save/display. The program will call base_model.get_current_visuals
         self.visual_names = ['burnt_true', 'real_true', 'fake_true']
         for i in range(opt.num_false_examples):
             self.visual_names.append('burnt_false_' + str(i))
             self.visual_names.append('real_false_' + str(i))
             self.visual_names.append('fake_false_' + str(i))
+
         # specify the models you want to save to the disk. The program will call base_model.save_networks and base_model.load_networks
         self.model_names = ['G' + opt.model_suffix]
 
@@ -38,6 +43,12 @@ class TestModel(BaseModel):
         # assigns the model to self.netG_[suffix] so that it can be loaded
         # please see BaseModel.load_networks
         setattr(self, 'netG' + opt.model_suffix, self.netG)
+
+        if opt.discriminator_test:
+            self.netD = networks.get_discriminator(opt)
+            setattr(self, 'netD' + opt.model_suffix, self.netD)
+            # define loss function
+            self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan).to(self.device)
 
     def set_input(self, input):
         self.real_true = input['real_true'].to(self.device)
@@ -58,11 +69,23 @@ class TestModel(BaseModel):
 
     def forward(self):
         self.fake_true = self.netG(self.burnt_true)
-
+        self.true_probability = self.netD(get_discriminator_input(self.opt, self.burnt_true, self.fake_true))
+        self.false_probability = []
         # Create as many fake images as there exist false neighbor examples
         for i in range(self.opt.num_false_examples):
             burnt_false = getattr(self, 'burnt_false_' + str(i))
             if burnt_false is not None:
-                setattr(self, 'fake_false_' + str(i), self.netG(burnt_false))
+                fake_false = self.netG(burnt_false)
+                self.false_probability.append(self.netD(get_discriminator_input(self.opt, burnt_false, fake_false)))
+                setattr(self, 'fake_false_' + str(i), fake_false)
             else:
                 setattr(self, 'fake_false_' + str(i), None)
+
+    # Note - Currently only takes the first false probability in the list
+    def get_probabilities(self):
+        if len(self.false_probability) == 0:
+            false_probability = torch.zeros(self.true_probability.shape)
+        else:
+            false_probability = self.false_probability[0]
+        return {'True': self.true_probability, 'False': false_probability}
+
