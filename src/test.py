@@ -5,6 +5,7 @@ from models import create_model
 from utils.visualizer import save_images, Visualizer
 from utils import html
 import numpy as np
+import json
 import utils.plot_utils
 
 
@@ -20,6 +21,7 @@ if __name__ == '__main__':
     # create website
     web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
     webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
+    discriminator_results_file = os.path.join(web_dir, 'discriminator_results.json')
     # test
     probability_results = {'True': [], 'False': []}
     for i, data in enumerate(dataset):
@@ -29,11 +31,12 @@ if __name__ == '__main__':
         model.test()
         probabilities = model.get_probabilities()
         for key in probabilities:
-            probability_results[key].append(probabilities[key])
+            probability_results[key].append(probabilities[key].tolist())
         visuals = model.get_current_visuals()
         img_path = model.get_image_paths()
         if i % opt.save_images_frequency == 0:
             print('processing (%04d)-th image... %s' % (i, img_path))
             save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
-    utils.plot_utils.plot_histograms([probability_results['True'], probability_results['False']], num_bins=10)
+    with open(discriminator_results_file, 'w') as f:
+        json.dump(probability_results, f)
     webpage.save()

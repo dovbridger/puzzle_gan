@@ -38,16 +38,12 @@ def listify_input(f):
 
 
 @listify_input
-def plot_histograms(data, num_bins=20):
-    '''
-    :param data: data to be plotted, or a list of data to be plotted for comparison
-    :param num_bins: Hitogram bins
-    :return:
-    '''
-    axes = _get_axes_from_data(data)
-    for i in range(len(data)):
-        axes[i].hist(data[i], bins=num_bins)
-    plt.show()
+def plot_histograms(data, num_bins=20, titles=None, colors=None, labels=None, output_file_name=None):
+        def hist_on_axes(axes, data, color=None, label=None, **kwargs):
+            axes.hist(data, bins=num_bins, color=color, histtype='step', label=label)
+
+        general_plot(data, hist_on_axes, configure_axes, titles=titles,
+                     labels=labels, colors=colors, output_file_name=output_file_name)
 
 
 @listify_input
@@ -139,7 +135,46 @@ def plot_y(data, sort=False, titles=None, colors=None, labels=None, output_file_
                  output_file_name=output_file_name)
 
 
+def _parse_loss_file(file_name):
+    def get_loss_names(loss_section):
+        words = loss_section.split(' ')[:-1]
+        return [words[i] for i in range(0, len(words), 2)]
 
-#def main():
-    #plot_bars([([8, 1], [7, 2]), ([10, 9], [5, 4])], titles=['Horizontal', 'Vertical'], tick_labels=['True', 'False'], colors=['b','g'], labels=['original', 'model'])
+    def get_loss_section(line):
+        index = line.find(')') + 2
+        return line[index:]
+    with open(file_name, 'r')  as f:
+        content = f.read()
+    lines = content.split('\n')
+    title = lines[0]
+    loss_names = get_loss_names(get_loss_section(lines[1]))
+    loss_sections = [get_loss_section(line) for line in lines[1:]]
+    loss_values = {key: [] for key in loss_names}
+    for section in loss_sections:
+        section = section.split(' ')[:-1]
+        for i in range(0, len(section), 2):
+            loss_values[section[i]].append(float(section[i + 1]))
+    values = tuple(np.array(loss_values[loss_name]) for loss_name in loss_names)
+    return values, loss_names, title
 
+def plot_loss_file(file_name):
+    data_to_plot, loss_names, title = _parse_loss_file(file_name)
+    plot_y(data_to_plot, titles=[title], labels=loss_names)
+
+def plot_discriminator_results(results_file):
+    import json
+    with open(results_file, 'r') as f:
+        results = json.load(f)
+    keys = list(results.keys())
+    num_examples, _, _, height, width = np.array(results[keys[0]]).shape
+    results = [np.array(results[key]).reshape(num_examples, height, width) for key in keys]
+    hist_folder = os.path.join(os.path.dirname(results_file), "histogram_results")
+    os.makedirs(hist_folder)
+    for i in range(height):
+        for j in range(width):
+            current_result = tuple(array[:, i, j] for array in results)
+            plot_histograms(current_result, num_bins=10, titles=[str((i, j))], labels=keys,
+                            output_file_name=os.path.join(hist_folder, str(i) + str(j) + ".jpg"))
+
+if __name__ == '__main__':
+    plot_discriminator_results(r"C:\SHARE\checkouts\puzzle_gan\saved_data\results\toy_example_better\test_latest\discriminator_results.json")

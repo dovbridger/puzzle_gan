@@ -81,11 +81,11 @@ class TestModel(BaseModel):
             else:
                 setattr(self, 'fake_false_' + str(i), None)
 
+    # Note - Currently only takes the first false probability in the list
     def get_probabilities(self):
         if len(self.false_probability) == 0:
-            false_probability = 0
+            false_probability = torch.zeros(self.true_probability.shape)
         else:
-            from numpy import mean
-            false_probability = mean([x.mean().item() for x in self.false_probability])
-        return {'True': self.true_probability.mean().item(), 'False': false_probability}
+            false_probability = self.false_probability[0]
+        return {'True': self.true_probability, 'False': false_probability}
 
