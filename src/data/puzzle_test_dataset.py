@@ -64,6 +64,15 @@ class PuzzleTestDataset(PuzzleDataset):
         :return:
         '''
         file_name_true_without_extension = os.path.basename(true_path).split('.')[0]
+        if 'puzzle_parts' in self.root:
+            # Remove the second part number from the true pair file name
+            if 'orientation=v' in file_name_true_without_extension:
+                delimiter = '_v_'
+            elif 'orientation=h' in file_name_true_without_extension:
+                delimiter = '_h_'
+            else:
+                raise Exception("Wrong file name (%s) in puzzle_parts dataset" % true_path)
+        file_name_true_without_extension = file_name_true_without_extension.split(delimiter)[0]
         false_paths = []
         for file in self.false_paths:
             if len(false_paths) >= self.opt.num_false_examples:

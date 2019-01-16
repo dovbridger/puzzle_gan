@@ -1,0 +1,3 @@
+python test.py --num_false_examples 1 --how_many 6000 --discriminator_test --name puzzle_example_burn8 --burn_extent 8 --dataroot ../datasets/puzzle_parts --generator_window 16 --discriminator_window 32 --save_images_frequency 100
+python test.py --num_false_examples 1 --how_many 6000 --discriminator_test --name puzzle_example_burn4 --burn_extent 4 --dataroot ../datasets/puzzle_parts --generator_window 8 --discriminator_window 32 --save_images_frequency 100
+python test.py --num_false_examples 1 --how_many 6000 --discriminator_test --name puzzle_example_burn2 --burn_extent 2 --dataroot ../datasets/puzzle_parts --generator_window 4 --discriminator_window 32 --save_images_frequency 100

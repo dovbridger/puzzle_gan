@@ -29,9 +29,10 @@ if __name__ == '__main__':
             break
         model.set_input(data)
         model.test()
-        probabilities = model.get_probabilities()
-        for key in probabilities:
-            probability_results[key].append(probabilities[key].tolist())
+        if opt.discriminator_test:
+            probabilities = model.get_probabilities()
+            for key in probabilities:
+                probability_results[key].append(probabilities[key].tolist())
         visuals = model.get_current_visuals()
         img_path = model.get_image_paths()
         if i % opt.save_images_frequency == 0:

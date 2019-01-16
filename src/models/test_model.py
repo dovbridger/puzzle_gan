@@ -69,14 +69,16 @@ class TestModel(BaseModel):
 
     def forward(self):
         self.fake_true = self.netG(self.burnt_true)
-        self.true_probability = self.netD(get_discriminator_input(self.opt, self.burnt_true, self.fake_true))
-        self.false_probability = []
+        if self.opt.discriminator_test:
+            self.true_probability = self.netD(get_discriminator_input(self.opt, self.burnt_true, self.fake_true))
+            self.false_probability = []
         # Create as many fake images as there exist false neighbor examples
         for i in range(self.opt.num_false_examples):
             burnt_false = getattr(self, 'burnt_false_' + str(i))
             if burnt_false is not None:
                 fake_false = self.netG(burnt_false)
-                self.false_probability.append(self.netD(get_discriminator_input(self.opt, burnt_false, fake_false)))
+                if self.opt.discriminator_test:
+                    self.false_probability.append(self.netD(get_discriminator_input(self.opt, burnt_false, fake_false)))
                 setattr(self, 'fake_false_' + str(i), fake_false)
             else:
                 setattr(self, 'fake_false_' + str(i), None)
