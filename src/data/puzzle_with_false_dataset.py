@@ -3,26 +3,26 @@ import os.path
 from data.image_folder import make_dataset
 
 
-class PuzzleTestDataset(PuzzleDataset):
+class PuzzleWithFalseDataset(PuzzleDataset):
     '''
     An extended version of 'PuzzleDataset' That appends examples of false puzzle piece neighbors to qualitively compare
     the inpainting results to those of the true neighbors
     '''
     @staticmethod
     def modify_commandline_options(parser, is_train):
-        assert not is_train, "PuzzleTestDataset should not be used in training mode"
         parser = PuzzleDataset.modify_commandline_options(parser, is_train)
         parser.add_argument('--num_false_examples', type=int, default=1,
                             help='What is the maximum number of false completion examples to test for each true example')
         return parser
 
     def initialize(self, opt):
-        super(PuzzleTestDataset, self).initialize(opt)
+        super(PuzzleWithFalseDataset, self).initialize(opt)
         # The folder containing images of false adjacent puzzle pieces according to 'opt.phase' (should bet 'test'))
         self.phase_folder_false = os.path.join(self.root, opt.phase, 'False')
 
         # Paths of the images of false adjacent puzzle pieces
         self.false_paths = sorted(make_dataset(self.phase_folder_false))
+        self.false_base_names = [os.path.basename(file) for file in self.false_paths]
 
     def __getitem__(self, index):
         '''
@@ -74,13 +74,12 @@ class PuzzleTestDataset(PuzzleDataset):
                 raise Exception("Wrong file name (%s) in puzzle_parts dataset" % true_path)
         file_name_true_without_extension = file_name_true_without_extension.split(delimiter)[0]
         false_paths = []
-        for file in self.false_paths:
+        # Files that contain the same left puzzle piece as in the true example
+        candidates = [file for file in self.false_base_names if file.startswith(file_name_true_without_extension)]
+        for file in candidates:
             if len(false_paths) >= self.opt.num_false_examples:
                 return false_paths
-
-            # The current file contains the same left puzzle piece as in the true example
-            elif os.path.basename(file).startswith(file_name_true_without_extension):
-                false_paths.append(file)
+            false_paths.append(os.path.join(self.phase_folder_false, file))
         return false_paths
 
     def name(self):

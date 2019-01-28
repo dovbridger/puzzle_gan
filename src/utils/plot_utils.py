@@ -180,7 +180,7 @@ def plot_discriminator_results(results_file):
                     output_file_name=os.path.join(hist_folder, "mean.jpg"))
 
 def main():
-    file_name = r"C:\SHARE\checkouts\puzzle_gan\saved_data\results\puzzle_example_burn8\test_latest\discriminator_results.json"
+    file_name = r"C:\SHARE\checkouts\puzzle_gan\saved_data\results\puzzle_example_burn2\test_latest\discriminator_results.json"
     plot_discriminator_results(file_name)
 if __name__ == '__main__':
     main()
