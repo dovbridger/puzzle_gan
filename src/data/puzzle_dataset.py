@@ -15,6 +15,10 @@ class PuzzleDataset(BaseDataset):
         # (The hole between two parts will be 2 * burn_extent)
         parser.add_argument('--burn_extent', type=int, default=2,
                             help='Number of pixel columns missing on the edge of each puzzle piece')
+
+        parser.add_argument('--discriminator_test', action='store_true',
+                            help='Whether or not to include the discriminator in the test to measure true/false neighbor'
+                                 'identification')
         return parser
 
     def initialize(self, opt):

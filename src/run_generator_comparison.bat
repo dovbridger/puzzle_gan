@@ -1,0 +1,1 @@
+python test.py --num_false_examples 1 --how_many 5 --name test_compare --burn_extent 2 --dataroot ../datasets/puzzle_parts --generator_window 4 --discriminator_window 32 --save_images_frequency 1 --generators [["puzzle_example_burn2","35"],["puzzle_example_burn2_l","35"],["puzzle_example_burn2_b1","latest"]]

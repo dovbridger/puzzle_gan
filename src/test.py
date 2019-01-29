@@ -8,6 +8,7 @@ import numpy as np
 import json
 import utils.plot_utils
 
+NUM_LOSS_DIGITS = 3
 
 if __name__ == '__main__':
     opt = TestOptions().parse()
@@ -37,7 +38,18 @@ if __name__ == '__main__':
         img_path = model.get_image_paths()
         if i % opt.save_images_frequency == 0:
             print('processing (%04d)-th image... %s' % (i, img_path))
-            save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
+            losses = model.get_current_losses()
+            losses = {key: round(value, NUM_LOSS_DIGITS) for key, value in losses.items()}
+            min_loss = min(losses.values())
+            max_loss = max(losses.values())
+            for key, value in losses.items():
+                if value == min_loss:
+                    losses[key] = (value, 'green')
+                elif value == max_loss:
+                    losses[key] = (value, 'red')
+                else:
+                    losses[key] = (value, 'black')
+            save_images(webpage, visuals, img_path, additional_texts=losses, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
     with open(discriminator_results_file, 'w') as f:
         json.dump(probability_results, f)
     webpage.save()

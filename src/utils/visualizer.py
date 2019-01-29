@@ -8,15 +8,18 @@ from scipy.misc import imresize
 
 
 # save image to the disk
-def save_images(webpage, visuals, image_path, aspect_ratio=1.0, width=256):
+def save_images(webpage, visuals, image_path, additional_texts=None, aspect_ratio=1.0, width=256):
     image_dir = webpage.get_image_dir()
     short_path = ntpath.basename(image_path[0])
     name = os.path.splitext(short_path)[0]
-
     webpage.add_header(name)
     ims, txts, links = [], [], []
 
     for label, im_data in visuals.items():
+        text = label
+        if additional_texts is not None and label in additional_texts.keys():
+            more_text, color = additional_texts[label]
+            text = (label + " , " + str(more_text), color)
         if im_data is not None:
             im = tensor2im(im_data)
             image_name = '%s_%s.png' % (name, label)
@@ -29,7 +32,7 @@ def save_images(webpage, visuals, image_path, aspect_ratio=1.0, width=256):
             save_image(im, save_path)
 
             ims.append(image_name)
-            txts.append(label)
+            txts.append(text)
             links.append(image_name)
     webpage.add_images(ims, txts, links, width=width)
 

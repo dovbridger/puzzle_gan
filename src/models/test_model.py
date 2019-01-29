@@ -17,9 +17,6 @@ class TestModel(BaseModel):
                             help='In checkpoints_dir, [which_epoch]_net_G[model_suffix].pth will'
                             ' be loaded as the generator of TestModel')
         parser.set_defaults(dataset_name='puzzle_with_false')
-        parser.add_argument('--discriminator_test', action='store_true',
-                            help='Whether or not to include the discriminator in the test to measure true/false neighbor'
-                                 'identification')
         return parser
 
     def initialize(self, opt):
