@@ -18,7 +18,9 @@ class TestCompareModel(BaseModel):
         assert not is_train, 'TestModel cannot be used in train mode'
         parser = PuzzleGanModel.modify_commandline_options(parser, is_train)
         parser.set_defaults(dataset_name='puzzle_with_old_inpainting')
-        parser.add_argument('--generators', type=str, default='[["puzzle_example_burn2", "latest"],["puzzle_example_burn2_b1", "latest"]]')
+        parser.add_argument('--generators', type=str, default='[["puzzle_example_burn2", "latest"],["puzzle_example_burn2_b1", "latest"]]',
+                            help="Json string representing a list, in which each item is a 2 element list of strings"
+                            "as such: ['<generator name>','<epoch to load>']")
         return parser
 
     def initialize(self, opt):
@@ -35,14 +37,13 @@ class TestCompareModel(BaseModel):
             self.nets[generator_name] = current_net
             self.generator_names.append(generator_name)
         # specify the training losses you want to print out. The program will call base_model.get_current_losses
-        self.visual_names = ['burnt']
+        self.visual_names = ['burnt', 'real']
         # specify the images you want to save/display. The program will call base_model.get_current_visuals
         self.visual_names += [FAKE_NAME + '_' + generator for generator in self.generator_names]
 
         if opt.dataset_name == 'puzzle_with_old_inpainting':
             self.visual_names.append(FAKE_NAME + '_' + OLD_INPAINTING_NAME)
-        self.visual_names.append('real')
-        self.loss_names = [name for name in self.visual_names if name not in ['real', 'burnt']]
+        self.loss_names = [name for name in self.visual_names if name not in ['burnt', 'real']]
         self.model_names = []
         self.L1_loss = torch.nn.L1Loss()
 

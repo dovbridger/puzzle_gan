@@ -4,6 +4,7 @@ from data.puzzle_dataset import PuzzleDataset
 from data.image_folder import make_dataset
 from PIL import Image
 
+# key name for accessing the current image that is pulled from the old inpainting results images in each example
 OLD_INPAINTING_NAME = 'old_inpainting'
 
 class PuzzleWithOldInpaintingDataset(PuzzleDataset):

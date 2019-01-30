@@ -3,6 +3,7 @@ from options.test_options import TestOptions
 from data import CreateDataLoader
 from models import create_model
 from utils.visualizer import save_images, Visualizer
+from utils.plot_utils import plot_discriminator_results
 from utils import html
 import numpy as np
 import json
@@ -50,6 +51,8 @@ if __name__ == '__main__':
                 else:
                     losses[key] = (value, 'black')
             save_images(webpage, visuals, img_path, additional_texts=losses, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
-    with open(discriminator_results_file, 'w') as f:
-        json.dump(probability_results, f)
+    if opt.discriminator_test:
+        with open(discriminator_results_file, 'w') as f:
+            json.dump(probability_results, f)
+        plot_discriminator_results(discriminator_results_file)
     webpage.save()

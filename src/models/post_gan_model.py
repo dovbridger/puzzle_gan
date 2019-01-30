@@ -7,6 +7,11 @@ from os import path, system
 
 
 class PostGanModel(BaseModel):
+    '''
+    This model is used to post train the discriminator to distinguish between true neighbors and false neighbors
+    The generator that is used here is loaded from the a previous GAN training process and does not change within this
+    model.
+    '''
     def name(self):
         return 'PostGanModel'
 
@@ -29,6 +34,7 @@ class PostGanModel(BaseModel):
 
         # specify the training losses you want to print out. The program will call base_model.get_current_losses
         self.loss_names = ['D', 'D_real_true', 'D_fake_true', 'D_real_false', 'D_fake_false']
+
         # specify the images you want to save/display. The program will call base_model.get_current_visuals
         self.visual_names = ['burnt_true', 'real_true', 'fake_true']
         for i in range(opt.num_false_examples):
@@ -36,12 +42,8 @@ class PostGanModel(BaseModel):
             self.visual_names.append('real_false_' + str(i))
             self.visual_names.append('fake_false_' + str(i))
 
-        # specify the models you want to save to the disk. The program will call base_model.save_networks and base_model.load_networks
         self.model_names = ['D' + opt.model_suffix]
 
-
-        # assigns the model to self.netD_[suffix] so that it can be loaded
-        # please see BaseModel.load_networks
         self.netD = networks.get_discriminator(opt)
         setattr(self, 'netD' + opt.model_suffix, self.netD)
         clean_discriminator_path = path.join(self.save_dir, get_network_file_name(opt.which_epoch, 'D'))
@@ -61,7 +63,7 @@ class PostGanModel(BaseModel):
                                             lr=opt.lr, betas=(opt.beta1, 0.999))
         self.optimizers = [self.optimizer_D]
 
-        # Defined separately because it is read only and is not being trained
+        # Defined separately and not included in 'self.model_names' because it is read only and is not being trained
         self.netG = networks.get_generator(opt)
         self.load_network(path.join(self.save_dir, opt.generator_file_name), self.netG)
 
@@ -83,7 +85,7 @@ class PostGanModel(BaseModel):
         self.image_paths = input['path']
 
     def forward(self):
-        assert self.burnt_false_0 is not None, "No false neighbor exists for '{0}', All true neighbor images must " \
+        assert self.burnt_false_0 is not None, "No false neighbor exist for '{0}', All true neighbor images must " \
                                                "have at least 1 corresponding false neighbor".format(self.image_paths)
         self.fake_true = self.netG(self.burnt_true)
         self.fake_false_0 = self.netG(self.burnt_false_0)

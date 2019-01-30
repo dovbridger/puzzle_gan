@@ -1,2 +1,1 @@
 python train.py --name puzzle_example_burn2_b1_g8_d64 --burn_extent 2 --dataroot ../datasets/puzzle_parts --niter 32 --niter_decay 1 --generator_window 8 --discriminator_window 64 --display_id -1 --save_epoch_freq 8 --batchSize 1
-run_puzzle_test

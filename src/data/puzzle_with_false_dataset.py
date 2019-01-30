@@ -7,6 +7,10 @@ class PuzzleWithFalseDataset(PuzzleDataset):
     '''
     An extended version of 'PuzzleDataset' That appends examples of false puzzle piece neighbors to qualitively compare
     the inpainting results to those of the true neighbors
+    It supports multiple false neighbor examples for each true example,
+    (given that such examples exist in the 'False' folder) by using the flag '--num_false_examples' but should really
+    be used with 1 false example as the models that use this dataset don't support
+    more than 1.
     '''
     @staticmethod
     def modify_commandline_options(parser, is_train):
@@ -83,4 +87,4 @@ class PuzzleWithFalseDataset(PuzzleDataset):
         return false_paths
 
     def name(self):
-        return 'PuzzleTestDataset'
+        return 'PuzzleWithFalseDataset'
