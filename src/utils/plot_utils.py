@@ -143,7 +143,7 @@ def _parse_loss_file(file_name):
     def get_loss_section(line):
         index = line.find(')') + 2
         return line[index:]
-    with open(file_name, 'r')  as f:
+    with open(file_name, 'r') as f:
         content = f.read()
     lines = content.split('\n')
     title = lines[0]
@@ -175,6 +175,12 @@ def plot_discriminator_results(results_file):
             current_result = tuple(array[:, i, j] for array in results)
             plot_histograms(current_result, num_bins=10, titles=[str((i, j))], labels=keys,
                             output_file_name=os.path.join(hist_folder, str(i) + str(j) + ".jpg"))
+    results_mean = tuple(array.reshape(num_examples, width * height).mean(axis=1) for array in results)
+    plot_histograms(results_mean, num_bins=10, titles=['Mean'], labels=keys,
+                    output_file_name=os.path.join(hist_folder, "mean.jpg"))
 
+def main():
+    file_name = r"C:\SHARE\checkouts\puzzle_gan\saved_data\results\batch1\test_latest_all\discriminator_results.json"
+    plot_discriminator_results(file_name)
 if __name__ == '__main__':
-    plot_discriminator_results(r"C:\SHARE\checkouts\puzzle_gan\saved_data\results\toy_example_better\test_latest\discriminator_results.json")
+    main()

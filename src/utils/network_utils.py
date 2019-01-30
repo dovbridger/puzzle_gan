@@ -1,4 +1,5 @@
 import torch
+import os.path
 
 
 def get_discriminator_input(opt, burnt_image, image):
@@ -19,3 +20,7 @@ def get_centered_window_indexes(initial_size, required_window_size):
     window_start = center - int(required_window_size / 2)
     window_end = window_start + required_window_size
     return (window_start, window_end)
+
+
+def get_network_file_name(which_epoch, name):
+    return'%s_net_%s.pth' % (which_epoch, name)

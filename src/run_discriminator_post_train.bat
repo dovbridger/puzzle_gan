@@ -1,0 +1,1 @@
+python train.py --model post_gan --name batch1_post --burn_extent 2 --dataroot ../datasets/puzzle_parts --niter 32 --niter_decay 1 --generator_window 4 --discriminator_window 32 --display_id 1 --save_epoch_freq 5 --batchSize 1 --copy_clean_discriminator

@@ -40,7 +40,12 @@ class HTML:
                             with a(href=os.path.join('images', link)):
                                 img(style="width:%dpx" % width, src=os.path.join('images', im))
                             br()
-                            p(txt)
+                            # includes color
+                            if isinstance(txt, tuple):
+                                p(txt[0], style='color:{0};'.format(txt[1]))
+                            else:
+                                p(txt)
+
 
     def save(self):
         html_file = '%s/index.html' % self.web_dir
