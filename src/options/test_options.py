@@ -15,6 +15,10 @@ class TestOptions(BaseOptions):
         parser.add_argument('--which_epoch', type=str, default='latest', help='which epoch to load? set to latest to use latest cached model')
         parser.add_argument('--how_many', type=int, default=50, help='how many test images to run')
         parser.add_argument('--save_images_frequency', type=int, default=1, help='Frequency of saving test images')
+        parser.add_argument('--discriminator_test', action='store_true',
+                            help='Whether or not to include the discriminator in the test to measure true/false neighbor'
+                                 'identification')
+        parser.add_argument('--calc_loss_stats', action='store_true', help='Do you want to calculate loss statistics during test')
 
         parser.set_defaults(model='test')
         # Deactivate visdom server

@@ -1,0 +1,4 @@
+python train.py --model puzzle_gan --name batch8 --burn_extent 2 --dataroot ../datasets/puzzle_parts --niter 32 --niter_decay 1 --generator_window 4 --discriminator_window 32 --display_id -1 --save_epoch_freq 4 --batchSize 8
+python train.py --model puzzle_gan --name batch16 --burn_extent 2 --dataroot ../datasets/puzzle_parts --niter 32 --niter_decay 1 --generator_window 4 --discriminator_window 32 --display_id -1 --save_epoch_freq 4 --batchSize 16
+python train.py --model puzzle_gan --name batch32 --burn_extent 2 --dataroot ../datasets/puzzle_parts --niter 32 --niter_decay 1 --generator_window 4 --discriminator_window 32 --display_id -1 --save_epoch_freq 4 --batchSize 32
+python train.py --model puzzle_gan --name batch1_1 --burn_extent 2 --dataroot ../datasets/puzzle_parts --niter 32 --niter_decay 1 --generator_window 4 --discriminator_window 32 --display_id -1 --save_epoch_freq 4 --batchSize 1

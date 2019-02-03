@@ -1,1 +1,1 @@
-python train.py --model post_gan --name batch1_post --burn_extent 2 --dataroot ../datasets/puzzle_parts --niter 32 --niter_decay 1 --generator_window 4 --discriminator_window 32 --display_id 1 --save_epoch_freq 5 --batchSize 1 --copy_clean_discriminator
+python train.py -- --model post_gan --copy_clean_discriminator --name batch1_post_fw1 --fake_loss_weight 1 --burn_extent 2 --dataroot ../datasets/puzzle_parts --niter 4 --niter_decay 1 --generator_window 4 --discriminator_window 32 --display_id 1 --save_epoch_freq 1 --batchSize 1

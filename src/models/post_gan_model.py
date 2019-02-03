@@ -26,14 +26,15 @@ class PostGanModel(BaseModel):
         parser.add_argument('--copy_clean_discriminator', action='store_true',
                             help="If there is no pre-saved discriminator model from post training add this flag to copy"
                                  "the epoch specific model from the GAN phase as 'latest'")
+        # Real images loss weight will be 1 - fake_loss_weight
+        parser.add_argument('--fake_loss_weight', type=float,  default=0.5,
+                            help="Weight of the loss on fake images in the total loss calculation")
         parser.set_defaults(dataset_name='puzzle_with_false')
+
         return parser
 
     def initialize(self, opt):
         BaseModel.initialize(self, opt)
-
-        # specify the training losses you want to print out. The program will call base_model.get_current_losses
-        self.loss_names = ['D', 'D_real_true', 'D_fake_true', 'D_real_false', 'D_fake_false']
 
         # specify the images you want to save/display. The program will call base_model.get_current_visuals
         self.visual_names = ['burnt_true', 'real_true', 'fake_true']
@@ -58,14 +59,18 @@ class PostGanModel(BaseModel):
             print("copying clean discriminator from '{0}' to '{1}'".format(
                 clean_discriminator_path, clean_discriminator_target_path))
             system('copy  "{0}" "{1}"'.format(clean_discriminator_path, clean_discriminator_target_path))
-        self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan).to(self.device)
-        self.optimizer_D = torch.optim.Adam(self.netD.parameters(),
-                                            lr=opt.lr, betas=(opt.beta1, 0.999))
-        self.optimizers = [self.optimizer_D]
 
         # Defined separately and not included in 'self.model_names' because it is read only and is not being trained
         self.netG = networks.get_generator(opt)
         self.load_network(path.join(self.save_dir, opt.generator_file_name), self.netG)
+
+        if opt.isTrain:
+            self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan).to(self.device)
+            self.optimizer_D = torch.optim.Adam(self.netD.parameters(),
+                                                lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizers = [self.optimizer_D]
+            # specify the training losses you want to print out. The program will call base_model.get_current_losses
+            self.loss_names = ['D', 'D_real_true', 'D_fake_true', 'D_real_false', 'D_fake_false']
 
     def set_input(self, input):
         self.real_true = input['real_true'].to(self.device)
@@ -88,7 +93,22 @@ class PostGanModel(BaseModel):
         assert self.burnt_false_0 is not None, "No false neighbor exist for '{0}', All true neighbor images must " \
                                                "have at least 1 corresponding false neighbor".format(self.image_paths)
         self.fake_true = self.netG(self.burnt_true)
+        # first false neighbor
         self.fake_false_0 = self.netG(self.burnt_false_0)
+
+        if not self.opt.isTrain:
+            self.true_probability = self.netD(get_discriminator_input(self.opt, self.burnt_true, self.fake_true))
+            # false probablity pertains to the first false example only
+            self.false_probability = self.netD(get_discriminator_input(self.opt, self.burnt_true, self.fake_false_0))
+
+        # Create as many additional fake images as there exist additional false neighbor examples
+        for i in range(1, self.opt.num_false_examples):
+            burnt_false = getattr(self, 'burnt_false_' + str(i))
+            if burnt_false is not None:
+                fake_false = self.netG(burnt_false)
+                setattr(self, 'fake_false_' + str(i), fake_false)
+            else:
+                setattr(self, 'fake_false_' + str(i), None)
 
     def backward(self):
         # True neighbors
@@ -116,7 +136,8 @@ class PostGanModel(BaseModel):
         self.loss_D_fake_false = self.criterionGAN(prediction_fake_false, False)
 
         # Combined loss
-        self.loss_D = (self.loss_D_real_true + self.loss_D_fake_true + self.loss_D_real_false + self.loss_D_fake_false) * 0.25
+        self.loss_D = (self.loss_D_real_true + self.loss_D_real_false) * (1 - self.opt.fake_loss_weight) +\
+                      (self.loss_D_fake_true + self.loss_D_fake_false) * self.opt.fake_loss_weight
         self.loss_D.backward()
 
 
@@ -126,3 +147,6 @@ class PostGanModel(BaseModel):
         self.optimizer_D.zero_grad()
         self.backward()
         self.optimizer_D.step()
+
+    def get_probabilities(self):
+        return {'True': self.true_probability, 'False': self.false_probability}

@@ -13,7 +13,7 @@ class PuzzleWithOldInpaintingDataset(PuzzleDataset):
     '''
     def initialize(self, opt):
         super(PuzzleWithOldInpaintingDataset, self).initialize(opt)
-        self.path_to_old_inpainting = os.path.join(self.root, OLD_INPAINTING_NAME, 'True')
+        self.path_to_old_inpainting = os.path.join(self.root, '../' + OLD_INPAINTING_NAME, 'True')
 
     def __getitem__(self, index):
         result = super(PuzzleWithOldInpaintingDataset, self).__getitem__(index)

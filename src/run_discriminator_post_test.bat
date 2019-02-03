@@ -1,0 +1,2 @@
+python test.py --model_suffix "" --model post_gan --num_false_examples 1 --how_many 6000 --discriminator_test --name batch1_post_fw1 --burn_extent 2 --dataroot ../datasets/puzzle_parts --generator_window 4 --discriminator_window 32 --save_images_frequency 100 --which_epoch latest
+python test.py --model post_gan --num_false_examples 1 --how_many 6000 --discriminator_test --name batch1_post_fw1 --burn_extent 2 --dataroot ../datasets/puzzle_parts --generator_window 4 --discriminator_window 32 --save_images_frequency 100 --which_epoch 1

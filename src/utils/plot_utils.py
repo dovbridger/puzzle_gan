@@ -104,6 +104,19 @@ def configure_axes(index, axes, titles=None, tick_labels=None, bar_width=0.4, da
     axes[index].legend()
 
 
+def print_loss_stats(loss_stats, output_file_name):
+    def print_dict(dict, fd):
+        for key, value in dict.items():
+            fd.write("{0} : {1}\n".format(str(key), str(value)))
+        fd.write('\n')
+
+    loss_stats_relative = {name: round(100 * min(loss_stats.values()) / value, 1) for name, value in loss_stats.items()}
+    with open(output_file_name, 'w') as f:
+        f.write('-------------- Average loss --------------------\n')
+        print_dict(loss_stats, f)
+        f.write('-------------- Relative loss --------------------\n')
+        print_dict(loss_stats_relative, f)
+
 def _get_property(dictionary, property_name, index=None):
     if property_name not in dictionary:
         return None
@@ -161,26 +174,31 @@ def plot_loss_file(file_name):
     data_to_plot, loss_names, title = _parse_loss_file(file_name)
     plot_y(data_to_plot, titles=[title], labels=loss_names)
 
-def plot_discriminator_results(results_file):
+def _parse_discriminator_results(results_file):
     import json
     with open(results_file, 'r') as f:
         results = json.load(f)
     keys = list(results.keys())
     num_examples, _, _, height, width = np.array(results[keys[0]]).shape
-    results = [np.array(results[key]).reshape(num_examples, height, width) for key in keys]
+    return [np.array(results[key]).reshape(num_examples, height, width) for key in keys], keys
+
+def plot_discriminator_results(results_file):
+    results, labels = _parse_discriminator_results(results_file)
+    num_examples, height, width = results[0].shape
     hist_folder = os.path.join(os.path.dirname(results_file), "histogram_results")
-    os.makedirs(hist_folder)
+    if not os.path.exists(hist_folder):
+        os.makedirs(hist_folder)
     for i in range(height):
         for j in range(width):
             current_result = tuple(array[:, i, j] for array in results)
-            plot_histograms(current_result, num_bins=10, titles=[str((i, j))], labels=keys,
+            plot_histograms(current_result, num_bins=10, titles=[str((i, j))], labels=labels,
                             output_file_name=os.path.join(hist_folder, str(i) + str(j) + ".jpg"))
     results_mean = tuple(array.reshape(num_examples, width * height).mean(axis=1) for array in results)
-    plot_histograms(results_mean, num_bins=10, titles=['Mean'], labels=keys,
+    plot_histograms(results_mean, num_bins=10, titles=['Mean'], labels=labels,
                     output_file_name=os.path.join(hist_folder, "mean.jpg"))
 
 def main():
-    file_name = r"C:\SHARE\checkouts\puzzle_gan\saved_data\results\batch1\test_latest_all\discriminator_results.json"
+    file_name = r"C:\SHARE\checkouts\puzzle_gan\saved_data\results\batch1_post\test_1\discriminator_results.json"
     plot_discriminator_results(file_name)
 if __name__ == '__main__':
     main()
