@@ -23,10 +23,10 @@ class PuzzleDataset(BaseDataset):
         self.root = opt.dataroot
 
         # The folder containing images of true adjacent puzzle pieces according to 'opt.phase' (train / test)
-        self.phase_folder_true = os.path.join(self.root, opt.phase, 'True')
+        self.phase_folder = os.path.join(self.root, opt.phase)
 
         # Paths of the images of true adjacent puzzle pieces
-        self.true_paths = sorted(make_dataset(self.phase_folder_true))
+        self.paths = sorted(make_dataset(self.phase_folder))
 
         # Transformations that need to be done on input images before feeding them to the network
         self.transform = get_transform(opt)
@@ -35,18 +35,18 @@ class PuzzleDataset(BaseDataset):
         '''
         get a single example from from the dataset
         :param index: index of them image you want (images are sorted according to path)
-        :return: dict containing the real image (round truth), the burnt image (real minus the pixels that are burnt)
+        :return: dict containing the real image (ground truth), the burnt image (real minus the pixels that are burnt)
                  and the path.
         '''
 
-        path = self.true_paths[index]
+        path = self.paths[index]
         real_image = self.get_real_image(path)
         burnt_image = self.burn_image(real_image)
 
         return {'real': real_image, 'burnt': burnt_image, 'path': path}
 
     def __len__(self):
-        return len(self.true_paths)
+        return len(self.paths)
 
     def get_real_image(self, path):
         original_img = Image.open(path).convert('RGB')

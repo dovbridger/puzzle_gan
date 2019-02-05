@@ -12,7 +12,7 @@ class BaseOptions():
     '''
     def __init__(self):
         self.initialized = False
-        self.project_root = r'../'
+        self.project_root = r'../../puzzle_gan_data'
         # Directory where models and results can be saved
         self.saved_data_root = os.path.join(self.project_root, 'saved_data')
 
@@ -57,6 +57,10 @@ class BaseOptions():
         parser.add_argument('--suffix', default='', type=str, help='customized suffix: opt.name = opt.name + suffix')
         parser.add_argument('--display_ncols', type=int, default=1, help='if positive, display all images in a single visdom web panel with certain number of images per row.')
         parser.add_argument('--kernel_size', type=int, default=4, help='Conv and Deconv kernel size')
+        parser.add_argument('--discriminator_window', type=int, default=self.fine_size[1],
+                            help='Width of the centered window that will be fed to the discriminator')
+        parser.add_argument('--generator_window', type=int, default=self.fine_size[1],
+                            help='Width of the centered window where the generated pixels will remain, the rest will be ignored')
         self.initialized = True
         return parser
 

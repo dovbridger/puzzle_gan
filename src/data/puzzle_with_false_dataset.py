@@ -1,6 +1,7 @@
 from data.puzzle_dataset import PuzzleDataset
 import os.path
 from data.image_folder import make_dataset
+import random
 
 
 class PuzzleWithFalseDataset(PuzzleDataset):
@@ -43,7 +44,7 @@ class PuzzleWithFalseDataset(PuzzleDataset):
                          }
         '''
         # A path to example of true neighboring puzzle pieces
-        path_true = self.true_paths[index]
+        path_true = self.paths[index]
 
         # A list paths to examples of the left puzzle piece from the true example,
         # adjacent to a puzzle piece on the right that is not the true neighbor
@@ -76,10 +77,11 @@ class PuzzleWithFalseDataset(PuzzleDataset):
                 delimiter = '_h_'
             else:
                 raise Exception("Wrong file name (%s) in puzzle_parts dataset" % true_path)
-        file_name_true_without_extension = file_name_true_without_extension.split(delimiter)[0]
+        file_name_true_without_extension = file_name_true_without_extension.split(delimiter)[0] + delimiter
         false_paths = []
         # Files that contain the same left puzzle piece as in the true example
         candidates = [file for file in self.false_base_names if file.startswith(file_name_true_without_extension)]
+        random.shuffle(candidates)
         for file in candidates:
             if len(false_paths) >= self.opt.num_false_examples:
                 return false_paths

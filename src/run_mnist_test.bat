@@ -1,1 +1,0 @@
-python test.py --input_nc 1 --output_nc 1 --num_false_examples 1 --name toy_example_e1 --dataroot ../datasets/mnist --discriminator_test --how_many 10000 --save_images_frequency 100 --provide_burnt
