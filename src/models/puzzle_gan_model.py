@@ -15,8 +15,6 @@ class PuzzleGanModel(BaseModel):
         # changing the default values to match the pix2pix paper
         # (https://phillipi.github.io/pix2pix/)
         parser.set_defaults(pool_size=0, no_lsgan=True, norm='batch')
-        parser.add_argument('--provide_burnt', action='store_true',
-                            help='Provide the burnt image as input for the discriminator along with the (fake / real) image')
         if is_train:
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
 

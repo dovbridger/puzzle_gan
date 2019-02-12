@@ -23,7 +23,7 @@ class PuzzleWithFalseDataset(PuzzleDataset):
     def initialize(self, opt):
         super(PuzzleWithFalseDataset, self).initialize(opt)
         # The folder containing images of false adjacent puzzle pieces according to 'opt.phase' (should bet 'test'))
-        self.phase_folder_false = os.path.join(self.root, opt.phase, 'False')
+        self.phase_folder_false = os.path.join(self.root, opt.phase, '../', 'False')
 
         # Paths of the images of false adjacent puzzle pieces
         self.false_paths = sorted(make_dataset(self.phase_folder_false))

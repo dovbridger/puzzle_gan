@@ -11,11 +11,6 @@ class PuzzleDataset(BaseDataset):
     '''
     @staticmethod
     def modify_commandline_options(parser, is_train):
-        # How many pixels will be missing from each edge of a puzzle part
-        # (The hole between two parts will be 2 * burn_extent)
-        parser.add_argument('--burn_extent', type=int, default=2,
-                            help='Number of pixel columns missing on the edge of each puzzle piece')
-
         return parser
 
     def initialize(self, opt):
@@ -27,7 +22,6 @@ class PuzzleDataset(BaseDataset):
 
         # Paths of the images of true adjacent puzzle pieces
         self.paths = sorted(make_dataset(self.phase_folder))
-
         # Transformations that need to be done on input images before feeding them to the network
         self.transform = get_transform(opt)
 
@@ -38,8 +32,11 @@ class PuzzleDataset(BaseDataset):
         :return: dict containing the real image (ground truth), the burnt image (real minus the pixels that are burnt)
                  and the path.
         '''
-
-        path = self.paths[index]
+        if isinstance(index, str):
+            # index is actually the file name
+            path = os.path.join(self.phase_folder, index)
+        else:
+            path = self.paths[index]
         real_image = self.get_real_image(path)
         burnt_image = self.burn_image(real_image)
 

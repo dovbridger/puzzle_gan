@@ -6,6 +6,9 @@ from utils.visualizer import Visualizer
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()
+    print("sleeping %s seconds" % opt.delay_start)
+    time.sleep(opt.delay_start)
+    print("starting")
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()
     dataset_size = len(data_loader)

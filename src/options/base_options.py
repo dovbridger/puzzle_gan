@@ -61,6 +61,23 @@ class BaseOptions():
                             help='Width of the centered window that will be fed to the discriminator')
         parser.add_argument('--generator_window', type=int, default=self.fine_size[1],
                             help='Width of the centered window where the generated pixels will remain, the rest will be ignored')
+        parser.add_argument('--provide_burnt', action='store_true',
+                            help='Provide the burnt image as input for the discriminator along with the (fake / real) image')
+        # How many pixels will be missing from each edge of a puzzle part
+        # (The hole between two parts will be 2 * burn_extent)
+        parser.add_argument('--burn_extent', type=int, default=2,
+                            help='Number of pixel columns missing on the edge of each puzzle piece')
+
+        parser.add_argument('--generator_to_load', type=str, default=None,
+                            help='Which generator model to load')
+        parser.add_argument('--generator_epoch', type=str, default='latest')
+        parser.add_argument('--discriminator_to_load', type=str, default=None,
+                            help='Which discriminator model to load')
+        parser.add_argument('--discriminator_epoch', type=str, default='latest')
+        parser.add_argument('--delay_start', type=int, default=1,
+                            help="Seconds to delay the start of the script after running it")
+        parser.add_argument('--save_mistakes_only', action='store_true',
+                            help='Save only images of wrong classification during discriminator_test')
         self.initialized = True
         return parser
 

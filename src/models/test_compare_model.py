@@ -52,7 +52,8 @@ class TestCompareModel(BaseModel):
         self.real = input['real'].to(self.device)
         self.burnt = input['burnt'].to(self.device)
         self.image_paths = input['path']
-        self.fake_old_inpainting = input[OLD_INPAINTING_NAME].to(self.device)
+        if self.opt.dataset_name == 'puzzle_with_old_inpainting':
+            self.fake_old_inpainting = input[OLD_INPAINTING_NAME].to(self.device)
 
     def forward(self):
         real_in_generated_window = None
@@ -63,12 +64,13 @@ class TestCompareModel(BaseModel):
                 # Create ground truth window for loss calulation in ann models
                 real_in_generated_window = self.real[:, :, :,
                                            net.generated_columns_start:net.generated_columns_end]
+                if hasattr(self, 'fake_old_inpainting'):
                 # Create the fake window for the old inpainting
-                fake_in_generated_window = self.fake_old_inpainting[:, :, :,
-                                           net.generated_columns_start:net.generated_columns_end]
-                # Calculate old inpainting loss
-                setattr(self, 'loss_' + FAKE_NAME + "_" + OLD_INPAINTING_NAME,
-                        self.L1_loss(fake_in_generated_window, real_in_generated_window))
+                    fake_in_generated_window = self.fake_old_inpainting[:, :, :,
+                                               net.generated_columns_start:net.generated_columns_end]
+                    # Calculate old inpainting loss
+                    setattr(self, 'loss_' + FAKE_NAME + "_" + OLD_INPAINTING_NAME,
+                            self.L1_loss(fake_in_generated_window, real_in_generated_window))
             current_fake = net(self.burnt)
             image_attribute_name = FAKE_NAME + "_" + generator_name
             setattr(self, image_attribute_name, current_fake)

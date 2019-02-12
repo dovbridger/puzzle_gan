@@ -6,6 +6,7 @@ from utils.network_utils import get_network_file_name, get_discriminator_input
 
 
 class CalcDiffModel(BaseModel):
+
     def name(self):
         return 'CalcDiffModel'
 
@@ -13,12 +14,8 @@ class CalcDiffModel(BaseModel):
     def modify_commandline_options(parser, is_train=True):
 
         parser.set_defaults(dataset_name='puzzle')
-        parser.add_argument('--generator_to_load', type=str, default='batch1',
-                            help='Which generator model to load')
-        parser.add_argument('--generator_epoch', type=str, default='latest')
-        parser.add_argument('--discriminator_to_load', type=str, default='batch1_post',
-                            help='Which discriminator model to load')
-        parser.add_argument('--discriminator_epoch', type=str, default='latest')
+        parser.set_defaults(no_lsgan=True)
+        parser.set_defaults(model_suffix='_post')
         return parser
 
     def initialize(self, opt):
@@ -28,25 +25,38 @@ class CalcDiffModel(BaseModel):
         assert not opt.isTrain, "calc_diff model is not to be used in training mode"
         self.netG = networks.get_generator(opt)
         generator_network_path = os.path.join(opt.checkpoints_dir,
-                                              opt.generator_to_load,
-                                              get_network_file_name(opt.generator_epoch, 'G'))
+                                              opt.discriminator_to_load,
+                                              get_network_file_name('latest', 'G' + opt.model_suffix))
         self.load_network(generator_network_path, self.netG)
 
         self.netD = networks.get_discriminator(opt)
         discriminator_network_path = os.path.join(opt.checkpoints_dir,
                                                   opt.discriminator_to_load,
-                                                  get_network_file_name(opt.discriminator_epoch, 'D'))
+                                                  get_network_file_name(opt.discriminator_epoch, 'D' + opt.model_suffix))
         self.load_network(discriminator_network_path, self.netD)
+        self.all_predictions = {}
+        self.visual_names = ['fake']
 
     def set_input(self, input):
         self.burnt = input['burnt'].to(self.device)
+        self.image_paths = input['path']
 
     def forward(self):
-        fake = self.netG(self.burnt)
-        self.prediction = self.netD(get_discriminator_input(self.opt, self.burnt, fake))
+        self.fake = self.netG(self.burnt)
+        self.prediction = self.netD(get_discriminator_input(self.opt, self.burnt, self.fake))
+        reshaped_predictions = self.get_prediction()
+        for i in range(len(self.image_paths)):
+            self.all_predictions[self.image_paths[i]] = reshaped_predictions[i].item()
 
-    def predict(self):
-        self.test()
-        return self.prediction.mean().item()
+    def get_prediction(self):
+        num_examples = self.prediction.shape[0]
+        return self.prediction.reshape(num_examples, -1).mean(dim=1)
+
+    def predict_on_files(self, folder, file_names):
+        import numpy
+        return numpy.array([self.all_predictions[os.path.join(folder, file)] for file in file_names])
+
+
+
 
 

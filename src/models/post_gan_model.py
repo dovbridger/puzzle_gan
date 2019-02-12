@@ -23,9 +23,7 @@ class PostGanModel(BaseModel):
                             ' be loaded as the discriminator of PostGanModel')
         parser.add_argument('--generator_file_name', type=str, default='latest_net_G.pth',
                             help='File name of the generator model that we want to use to post train the discriminator')
-        parser.add_argument('--copy_clean_discriminator', action='store_true',
-                            help="If there is no pre-saved discriminator model from post training add this flag to copy"
-                                 "the epoch specific model from the GAN phase as 'latest'")
+
         # Real images loss weight will be 1 - fake_loss_weight
         parser.add_argument('--fake_loss_weight', type=float,  default=0.5,
                             help="Weight of the loss on fake images in the total loss calculation")
@@ -47,22 +45,32 @@ class PostGanModel(BaseModel):
 
         self.netD = networks.get_discriminator(opt)
         setattr(self, 'netD' + opt.model_suffix, self.netD)
-        clean_discriminator_path = path.join(self.save_dir, get_network_file_name(opt.which_epoch, 'D'))
+
+        self.netG = networks.get_generator(opt)
+
         post_train_discriminator_path = path.join(self.save_dir,
                                                   get_network_file_name(opt.which_epoch, 'D' + opt.model_suffix))
-        if not path.exists(post_train_discriminator_path):
-            print("No post train discriminator model file ('{0}')".format(post_train_discriminator_path))
-            assert opt.copy_clean_discriminator,\
-                "Can't copy clean discriminator because 'copy_clean_discriminator' is False"
+        post_train_generator_path = path.join(self.save_dir, get_network_file_name('latest', 'G' + opt.model_suffix))
+        if path.exists(post_train_discriminator_path):
+            print("A post training discriminator already exists, a clean discriminator will not be copied")
+        else:
+            clean_discriminator_path = path.join(opt.checkpoints_dir,
+                                                 opt.discriminator_to_load,
+                                                 get_network_file_name(opt.discriminator_epoch, 'D'))
             clean_discriminator_target_path = path.join(self.save_dir,
                                                         get_network_file_name('latest', 'D' + opt.model_suffix))
             print("copying clean discriminator from '{0}' to '{1}'".format(
                 clean_discriminator_path, clean_discriminator_target_path))
             system('copy  "{0}" "{1}"'.format(clean_discriminator_path, clean_discriminator_target_path))
+            self.load_network(clean_discriminator_target_path, self.netD)
 
-        # Defined separately and not included in 'self.model_names' because it is read only and is not being trained
-        self.netG = networks.get_generator(opt)
-        self.load_network(path.join(self.save_dir, opt.generator_file_name), self.netG)
+            # Use the same GAN setup (network name + epoch)
+            # of the discriminator for the generator as well
+            source_generator_network_path = path.join(opt.checkpoints_dir,
+                                               opt.discriminator_to_load,
+                                               get_network_file_name(opt.discriminator_epoch, 'G'))
+            system('copy  "{0}" "{1}"'.format(source_generator_network_path, post_train_generator_path))
+        self.load_network(post_train_generator_path, self.netG)
 
         if opt.isTrain:
             self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan).to(self.device)

@@ -85,7 +85,7 @@ def general_plot(data, plot_function, axes_configurator, output_file_name=None, 
         axes_configurator(i, axes, data_per_plot=len(current_data), **kwargs)
     if output_file_name is not None:
         if os.path.exists(output_file_name):
-            file_name, extension = output_file_name.split('.')
+            file_name, extension = os.path.splitext(output_file_name)
             output_file_name = file_name + "_new." + extension
         plt.savefig(output_file_name)
     else:
@@ -116,6 +116,17 @@ def print_loss_stats(loss_stats, output_file_name):
         print_dict(loss_stats, f)
         f.write('-------------- Relative loss --------------------\n')
         print_dict(loss_stats_relative, f)
+
+def print_confusion_matrix(results, output_file_name):
+    num_right = results['true_positive'] + results['true_negative']
+    all_examples = num_right + results['false_positive'] + results['false_negative']
+    accuracy = float(num_right) / float(all_examples)
+    with open(output_file_name, 'w') as f:
+        f.write('True Positives: {0}\n'.format(results['true_positive']))
+        f.write('False Positives: {0}\n'.format(results['false_positive']))
+        f.write('True Negatives: {0}\n'.format(results['true_negative']))
+        f.write('False Negatives: {0}\n'.format(results['false_negative']))
+        f.write('Accuracy: {0} out of {1} ({2})\n'.format(num_right, all_examples, accuracy))
 
 def _get_property(dictionary, property_name, index=None):
     if property_name not in dictionary:
@@ -182,17 +193,18 @@ def _parse_discriminator_results(results_file):
     num_examples, _, _, height, width = np.array(results[keys[0]]).shape
     return [np.array(results[key]).reshape(num_examples, height, width) for key in keys], keys
 
-def plot_discriminator_results(results_file):
+def plot_discriminator_results(results_file, only_mean=True):
     results, labels = _parse_discriminator_results(results_file)
     num_examples, height, width = results[0].shape
     hist_folder = os.path.join(os.path.dirname(results_file), "histogram_results")
     if not os.path.exists(hist_folder):
         os.makedirs(hist_folder)
-    for i in range(height):
-        for j in range(width):
-            current_result = tuple(array[:, i, j] for array in results)
-            plot_histograms(current_result, num_bins=10, titles=[str((i, j))], labels=labels,
-                            output_file_name=os.path.join(hist_folder, str(i) + str(j) + ".jpg"))
+    if not only_mean:
+        for i in range(height):
+            for j in range(width):
+                current_result = tuple(array[:, i, j] for array in results)
+                plot_histograms(current_result, num_bins=10, titles=[str((i, j))], labels=labels,
+                                output_file_name=os.path.join(hist_folder, str(i) + str(j) + ".jpg"))
     results_mean = tuple(array.reshape(num_examples, width * height).mean(axis=1) for array in results)
     plot_histograms(results_mean, num_bins=10, titles=['Mean'], labels=labels,
                     output_file_name=os.path.join(hist_folder, "mean.jpg"))
