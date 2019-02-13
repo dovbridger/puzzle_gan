@@ -8,14 +8,14 @@ from utils import html
 import numpy as np
 import json
 import utils.plot_utils
-from utils.run_utils import  mixed_label_predictions
+from utils.run_utils import mixed_label_predictions
 
 NUM_LOSS_DIGITS = 3
 
 if __name__ == '__main__':
     opt = TestOptions().parse()
     opt.nThreads = 1   # test code only supports nThreads = 1
-    opt.batchSize = 1  # test code only supports batchSize = 1
+    opt.batchSize = 1  # test code only supports batchSize = 1בב
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()
     visualizer = Visualizer(opt)

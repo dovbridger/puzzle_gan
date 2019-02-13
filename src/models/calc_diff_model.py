@@ -44,6 +44,9 @@ class CalcDiffModel(BaseModel):
     def forward(self):
         self.fake = self.netG(self.burnt)
         self.prediction = self.netD(get_discriminator_input(self.opt, self.burnt, self.fake))
+
+    def predict_and_store(self):
+        self.test()
         reshaped_predictions = self.get_prediction()
         for i in range(len(self.image_paths)):
             self.all_predictions[self.image_paths[i]] = reshaped_predictions[i].item()

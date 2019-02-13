@@ -26,11 +26,11 @@ def create_diff_matrix_for_puzzle(puzzle_name, opt):
     model.setup(opt)
     for i, data in enumerate(dataset_h):
         model.set_input(data)
-        model.test()
+        model.predict_and_store()
     print('finished horiznotal')
     for i, data in enumerate(dataset_v):
         model.set_input(data)
-        model.test()
+        model.predict_and_store()
     print('finished vertical')
     java_utils.create_diff_matrix3d_with_model_evaluations(puzzle_name, part_size=64, burn_extent=opt.burn_extent, model=model,
                                                            test_folder=opt.dataroot, model_name=model.name() + '_' + opt.name)
