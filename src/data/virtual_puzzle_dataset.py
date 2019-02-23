@@ -30,19 +30,25 @@ class VirtualPuzzleDataset(BaseDataset):
 
         # Paths of the full puzzle images
         self.paths = sorted(make_dataset(self.phase_folder))
-        self.transform = get_transform(opt)
+        self.transform = transforms.Compose([transforms.ToTensor(),
+                         transforms.Normalize((0.5, 0.5, 0.5),
+                                              (0.5, 0.5, 0.5))])
         self.load_base_images()
 
     def load_base_images(self):
         num_examples_accumulated = 0
-        for path in self.paths:
-            horizontal_image = self.get_real_image(self, path)
-            vertical_image = transforms.functional.rotate(horizontal_image, 90)
+        for path in [p for p in self.paths if 'part_size=' + str(self.opt.part_size) in p and
+                                              'orientation=h' in p]:
             current_image = Namespace()
-            current_image.path = path
-            current_image.horizontal = horizontal_image
-            current_image.vertical = vertical_image
-            _, current_image.num_y_parts, current_image.num_x_parts = horizontal_image.shape
+            current_image.path_horizontal = path
+            current_image.path_vertical = path.replace('orientation=h', 'orientation=v')
+            current_image.horizontal = self.get_real_image(current_image.path_horizontal)
+            current_image.vertical = self.get_real_image(current_image.path_vertical)
+            _, height, width = current_image.horizontal.shape
+            assert height % self.opt.part_size == 0 and width % self.opt.part_size == 0,\
+                "Image wasn't cropped to be a multiple of 'part_size'"
+            current_image.num_x_parts = int(width / self.opt.part_size)
+            current_image.num_y_parts = int(height / self.opt.part_size)
             current_image.num_horizontal_examples = self.count_pair_examples_in_image(current_image.num_x_parts,
                                                                                       current_image.num_y_parts)
             # x and y are reversed in vertical
@@ -55,11 +61,11 @@ class VirtualPuzzleDataset(BaseDataset):
 
     def __getitem__(self, index):
         example = self.get_pair_example_by_index(index)
-        example['burnt_pair_image'] = self.burn_image(example['real_pair_image'])
+        example['burnt'] = self.burn_image(example['real'])
         return example
 
     def __len__(self):
-        return len(self.paths)
+        return self.images[-1].num_examples_accumulated
 
     def get_real_image(self, path):
         original_img = Image.open(path).convert('RGB')
@@ -99,14 +105,20 @@ class VirtualPuzzleDataset(BaseDataset):
 
     def get_pair_example_by_relative_index(self, image, relative_index):
         if relative_index < image.num_horizontal_examples:
-           example = self.get_pair_example_from_specific_image(image.horizontal, image.num_x_parts, relative_index)
-        elif relative_index < image.num_vertical_examples:
+            example = self.get_pair_example_from_specific_image(image.horizontal, image.num_x_parts, relative_index)
+            path = image.path_horizontal
+        elif relative_index < image.num_examples:
             relative_index -= image.num_horizontal_examples
             # num_y_parts is the number of x parts in the vertical image
             example = self.get_pair_example_from_specific_image(image.vertical, image.num_y_parts, relative_index)
+            path = image.path_vertical
         else:
             raise IndexError("Invalid index: {0}".format(relative_index))
-        example['path'] = image.path
+        image_name, extension = os.path.splitext(path)
+        example['path'] = "{0}-{1}_{2}{3}".format(image_name,
+                                                  str(example['part1']),
+                                                  str(example['part2']),
+                                                  extension)
         return example
 
     def get_pair_example_from_specific_image(self, specific_image, num_x_parts, relative_index):
@@ -120,7 +132,7 @@ class VirtualPuzzleDataset(BaseDataset):
             # Temporary
             part2 = 0
         pair_tensor = self.crop_pair_from_image(specific_image, num_x_parts, part1, part2)
-        return {'part1': part1, 'part2': part2, 'label': label, 'real_pair_image': pair_tensor}
+        return {'part1': part1, 'part2': part2, 'label': label, 'real': pair_tensor}
 
     def crop_pair_from_image(self, image, num_x_parts, part1, part2):
 
