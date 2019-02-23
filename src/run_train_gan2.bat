@@ -1,0 +1,1 @@
+python train.py --phase True --model puzzle_gan --name batch1_burn4_dw64 --burn_extent 4 --dataroot ../../puzzle_gan_data/datasets/puzzle_parts/train --niter 48 --niter_decay 0 --generator_window 8 --discriminator_window 64 --display_id -1 --save_epoch_freq 4 --batchSize 1
