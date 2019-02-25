@@ -20,14 +20,14 @@ class TestOptions(BaseOptions):
                                  'identification')
         parser.add_argument('--calc_loss_stats', action='store_true', help='Do you want to calculate loss statistics during test')
 
-        parser.set_defaults(model='test')
+        parser.add_argument('--experiment_name', default='0',
+                            help="Indentifyer for this specific experiment. Usefull if you don't want to override a previous one")
         # Deactivate visdom server
         parser.set_defaults(display_id=-1)
         # To avoid cropping, the loadSize should be the same as fineSize
         parser.set_defaults(loadSize=parser.get_default('fineSize'))
         parser.set_defaults(only_crop=0)
         parser.set_defaults(no_flip=True)
-        parser.set_defaults(serial_batches=True)
         
         self.isTrain = False
         return parser

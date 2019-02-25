@@ -8,21 +8,21 @@ from utils import html
 import numpy as np
 import json
 import utils.plot_utils
-from utils.run_utils import mixed_label_predictions
+from utils.run_utils import mixed_label_predictions, virtual_model_predictions
 
 NUM_LOSS_DIGITS = 3
 
 if __name__ == '__main__':
     opt = TestOptions().parse()
     opt.nThreads = 1   # test code only supports nThreads = 1
-    opt.batchSize = 1  # test code only supports batchSize = 1בב
+    opt.batchSize = 1  # test code only supports batchSize = 1
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()
     visualizer = Visualizer(opt)
     model = create_model(opt)
     model.setup(opt)
     # create website
-    web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
+    web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s_%s' % (opt.phase, opt.which_epoch, opt.experiment_name))
     webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
     discriminator_results_file = os.path.join(web_dir, 'discriminator_results.json')
     loss_stats_file = os.path.join(web_dir, 'loss_stats.txt')
@@ -52,7 +52,10 @@ if __name__ == '__main__':
                                   'fake_false_0': (false_probability, 'green' if false_probability < 0.5 else 'red')}
                     mistake = true_probablitiy < 0.5 or false_probability >= 0.5
             else:
-                predictions, conclusions = mixed_label_predictions(model)
+                if opt.dataset_name == 'virtual_puzzle':
+                    predictions, conclusions = virtual_model_predictions(model)
+                else:
+                    predictions, conclusions = mixed_label_predictions(model)
                 mistake = 'false' in conclusions[0]
                 for conclusion in conclusions:
                     cm[conclusion] += 1

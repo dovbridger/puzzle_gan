@@ -217,6 +217,41 @@ def compare_best_buddies(diff_matrices, num_x_parts, num_y_parts, puzzle_descrip
     return data_to_plot
 
 
+def combine_all_diff_scores(model_names, correction_method='direct', indexes=range(1, 21)):
+    puzzle_names = [str(x) + 'b' for x in indexes]
+    all_scores = {'ranks': [], 'buddies': [], 'confidence': []}
+    for puzzle_name in puzzle_names:
+        print("Collecting scores for puzzle " + puzzle_name)
+        current_scores = run_diff_score_comparison(puzzle_name, correction_method, model_names=model_names)
+        for key in current_scores:
+            all_scores[key].append(current_scores[key])
+    print("Collected all scores")
+    buddies = tuple(x for x in np.array(all_scores['buddies']).sum(axis=0))
+    tick_labels = ['True BB', 'False BB']
+    ranks = np.array(all_scores['ranks']).transpose(([1, 2, 0]))
+    ranks = tuple(ranks.reshape(ranks.shape[0], -1))
+    confidence = list(zip(*all_scores['confidence']))
+    for i in range(2):
+        score_sums = [() for k in range(len(confidence[i][0]))]
+        for puzzle_scores in confidence[i]:
+            puzzle_scores = list(puzzle_scores)
+            for k in range(len(puzzle_scores)):
+                score = tuple(puzzle_scores[k])
+                score_sums[k] = score_sums[k] + score
+        confidence[i] = tuple(np.array(score_sum).flatten() for score_sum in score_sums)
+    puzzle_description = "All_puzzles-" + correction_method
+    plot_y(ranks,
+           sort=True, colors=COLORS, labels=model_names,
+           titles=['Diff score ranking of the true neighbors (sorted)'],
+           output_file_name=get_figure_name(puzzle_description, 'ranks'))
+    plot_bars(buddies, labels=model_names, colors=COLORS,
+              titles=['Total Best Buddies Count'], tick_labels=tick_labels,
+              output_file_name=get_figure_name(puzzle_description, 'best_buddies'))
+    plot_y(confidence,
+           sort=True, colors=COLORS, labels=model_names,
+           titles=['Top True Scores', 'Top False scores'], output_file_name=get_figure_name(puzzle_description, 'confidence_scores'))
+
+
 def get_figure_name(puzzle_description, figure_type):
     return path.join(FIGURES_FOLDER, puzzle_description + "-" + figure_type + '.jpg')
 

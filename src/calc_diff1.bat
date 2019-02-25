@@ -1,1 +1,1 @@
-python calc_diff.py --model calc_diff --name g44_d30_b4 --burn_extent 4 --dataroot C:\SHARE\images\pair_inputs_for_completion\test --generator_window 8 --discriminator_window 32 --discriminator_to_load batch1_burn4_post_44 --discriminator_epoch 30 --batchSize 1
+python calc_diff.py --model calc_diff --name g44_d40_b4 --burn_extent 4 --dataroot C:\SHARE\images\pair_inputs_for_completion\test --generator_window 8 --discriminator_window 32 --discriminator_to_load batch1_burn4_post_44 --discriminator_epoch 40 --batchSize 1

@@ -6,6 +6,7 @@ from PIL import Image
 from torchvision import transforms
 from argparse import Namespace
 from bisect import bisect
+from random import choice
 
 
 class VirtualPuzzleDataset(BaseDataset):
@@ -49,6 +50,7 @@ class VirtualPuzzleDataset(BaseDataset):
                 "Image wasn't cropped to be a multiple of 'part_size'"
             current_image.num_x_parts = int(width / self.opt.part_size)
             current_image.num_y_parts = int(height / self.opt.part_size)
+            current_image.parts_range = range(current_image.num_x_parts * current_image.num_y_parts)
             current_image.num_horizontal_examples = self.count_pair_examples_in_image(current_image.num_x_parts,
                                                                                       current_image.num_y_parts)
             # x and y are reversed in vertical
@@ -105,12 +107,14 @@ class VirtualPuzzleDataset(BaseDataset):
 
     def get_pair_example_by_relative_index(self, image, relative_index):
         if relative_index < image.num_horizontal_examples:
-            example = self.get_pair_example_from_specific_image(image.horizontal, image.num_x_parts, relative_index)
+            example = self.get_pair_example_from_specific_image(image.horizontal, image.num_x_parts,
+                                                                image.parts_range, relative_index)
             path = image.path_horizontal
         elif relative_index < image.num_examples:
             relative_index -= image.num_horizontal_examples
             # num_y_parts is the number of x parts in the vertical image
-            example = self.get_pair_example_from_specific_image(image.vertical, image.num_y_parts, relative_index)
+            example = self.get_pair_example_from_specific_image(image.vertical, image.num_y_parts,
+                                                                image.parts_range, relative_index)
             path = image.path_vertical
         else:
             raise IndexError("Invalid index: {0}".format(relative_index))
@@ -121,16 +125,23 @@ class VirtualPuzzleDataset(BaseDataset):
                                                   extension)
         return example
 
-    def get_pair_example_from_specific_image(self, specific_image, num_x_parts, relative_index):
-        part1 = int(relative_index / (num_x_parts - 1))
+    def get_pair_example_from_specific_image(self, specific_image, num_x_parts, parts_range, relative_index):
+
+        # The part that corresponds with relative_index
+        part_index = int(relative_index / (self.opt.num_false_examples + 1))
+        # The part in the original puzzle (after skipping the rightmost column)
+        part1 = int(part_index * num_x_parts / (num_x_parts - 1))
+        assert part1 % num_x_parts < num_x_parts - 1, "part1 was selected from rightmost column, sum tin wong"
+        # Initialize part2 as the true neighbor
+        part2 = part1 + 1
         if relative_index % (self.opt.num_false_examples + 1) == 0:
             # A true example
             label = True
-            part2 = part1 + 1
         else:
             label = False
-            # Temporary
-            part2 = 0
+            while (part2 == part1 + 1 or part2 == part1):
+                # Randomly select a part until it is valid
+                part2 = choice(parts_range)
         pair_tensor = self.crop_pair_from_image(specific_image, num_x_parts, part1, part2)
         return {'part1': part1, 'part2': part2, 'label': label, 'real': pair_tensor}
 

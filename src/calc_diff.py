@@ -42,12 +42,16 @@ def compare_puzzle_scores(score_file):
     plot_histograms((direct, none), num_bins=10, labels=['New', 'Original'])
 
 
-def main():
+def calc_diff():
     opt = TestOptions().parse()
     opt.nThreads = 1   # test code only supports nThreads = 1
     opt.batchSize = 1
-    for puzzle_name in [str(x) + 'b' for x in range(13, 21)]:
+    for puzzle_name in [str(x) + 'b' for x in range(1, 21)]:
         create_diff_matrix_for_puzzle(puzzle_name, opt)
+
+def main():
+    calc_diff()
+
 
 if __name__ == '__main__':
     main()

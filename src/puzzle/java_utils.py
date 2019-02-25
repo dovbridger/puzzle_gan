@@ -335,7 +335,8 @@ def create_diff_matrix2d_with_model_evaluations(model, folder_path,
         if orientation == 'v':
             part1 = convert_vertical_to_horizontal_part_number(part1, num_x_parts=num_x_parts, num_y_parts=num_y_parts)
             part2 = convert_vertical_to_horizontal_part_number(part2, num_x_parts=num_x_parts, num_y_parts=num_y_parts)
-        if predictions[i] == 0:
+        min_prediction = float(1) / MAX_FLOAT
+        if predictions[i] < min_prediction:
             diff_matrix2d[part1][part2] = MAX_FLOAT
         else:
             diff_matrix2d[part1][part2] = (float(1) / predictions[i]) - 1
