@@ -61,6 +61,7 @@ class PostGanVirtualModel(BaseModel):
                                                get_network_file_name(opt.discriminator_epoch, 'G'))
             system('copy  "{0}" "{1}"'.format(source_generator_network_path, post_train_generator_path))
         self.load_network(post_train_generator_path, self.netG)
+        self.dataset_access = None
 
         if opt.isTrain:
             self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan).to(self.device)
@@ -74,7 +75,7 @@ class PostGanVirtualModel(BaseModel):
         self.real = input['real'].to(self.device)
         self.burnt = input['burnt'].to(self.device)
         self.label = input['label']
-        self.image_paths = input['path']
+        self.image_paths = input['name']
 
     def forward(self):
         self.fake = self.netG(self.burnt)
@@ -108,3 +109,5 @@ class PostGanVirtualModel(BaseModel):
     def get_prediction(self):
         num_examples = self.probability.shape[0]
         return self.probability.reshape(num_examples, -1).mean(dim=1), self.label
+
+

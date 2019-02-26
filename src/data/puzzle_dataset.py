@@ -40,7 +40,7 @@ class PuzzleDataset(BaseDataset):
         real_image = self.get_real_image(path)
         burnt_image = self.burn_image(real_image)
 
-        return {'real': real_image, 'burnt': burnt_image, 'path': path}
+        return {'real': real_image, 'burnt': burnt_image, 'name': path}
 
     def __len__(self):
         return len(self.paths)

@@ -3,10 +3,13 @@ import torch
 from data.base_dataset import BaseDataset, get_transform
 from data.image_folder import make_dataset
 from PIL import Image
+from utils.util import tensor2im, save_image
 from torchvision import transforms
 from argparse import Namespace
 from bisect import bisect
 from random import choice
+from globals import PART_SIZE_MAGIC, ORIENTATION_MAGIC, HORIZONTAL, VERTICAL, NAME_MAGIC
+from puzzle.puzzle_utils import get_full_pair_example_name, get_info_from_file_name
 
 
 class VirtualPuzzleDataset(BaseDataset):
@@ -18,6 +21,8 @@ class VirtualPuzzleDataset(BaseDataset):
         parser.add_argument('--part_size', type=int, default=64,
                             help='What size are the puzzle parts produced by the dataset (The image width and height'
                                  'must be a multiple of "part_size"')
+        parser.add_argument('--puzzle_name', type=str, default='',
+                            help="Specify a single puzzle name if you want to it to be the only one in the dataset")
         parser.set_defaults(resize_or_crop='none')
         return parser
 
@@ -25,6 +30,7 @@ class VirtualPuzzleDataset(BaseDataset):
         self.opt = opt
         self.root = opt.dataroot
         self.images = []
+        self.images_index_dict = {}
 
         # The folder containing images of true adjacent puzzle pieces according to 'opt.phase' (train / test)
         self.phase_folder = os.path.join(self.root, opt.phase)
@@ -38,13 +44,23 @@ class VirtualPuzzleDataset(BaseDataset):
 
     def load_base_images(self):
         num_examples_accumulated = 0
-        for path in [p for p in self.paths if 'part_size=' + str(self.opt.part_size) in p and
-                                              'orientation=h' in p]:
+        for path in [p for p in self.paths if PART_SIZE_MAGIC + str(self.opt.part_size) in p and
+                                              ORIENTATION_MAGIC + HORIZONTAL in p and
+                                              NAME_MAGIC + str(self.opt.puzzle_name) in p]:
             current_image = Namespace()
-            current_image.path_horizontal = path
-            current_image.path_vertical = path.replace('orientation=h', 'orientation=v')
-            current_image.horizontal = self.get_real_image(current_image.path_horizontal)
-            current_image.vertical = self.get_real_image(current_image.path_vertical)
+            current_image.image_dir = os.path.dirname(path)
+            current_image.name_horizontal, current_image.image_extension = os.path.splitext(os.path.basename(path))
+            current_image.name_vertical = current_image.name_horizontal.replace(ORIENTATION_MAGIC + HORIZONTAL,
+                                                                                ORIENTATION_MAGIC + VERTICAL)
+
+            current_image.horizontal = self.get_real_image(os.path.join(
+                current_image.image_dir,
+                current_image.name_horizontal + current_image.image_extension))
+
+            current_image.vertical = self.get_real_image(os.path.join(
+                current_image.image_dir,
+                current_image.name_vertical + current_image.image_extension))
+
             _, height, width = current_image.horizontal.shape
             assert height % self.opt.part_size == 0 and width % self.opt.part_size == 0,\
                 "Image wasn't cropped to be a multiple of 'part_size'"
@@ -59,6 +75,7 @@ class VirtualPuzzleDataset(BaseDataset):
             current_image.num_examples = current_image.num_horizontal_examples + current_image.num_vertical_examples
             num_examples_accumulated += current_image.num_examples
             current_image.num_examples_accumulated = num_examples_accumulated
+            self.images_index_dict[current_image.name_horizontal] = len(self.images)
             self.images.append(current_image)
 
     def __getitem__(self, index):
@@ -67,7 +84,10 @@ class VirtualPuzzleDataset(BaseDataset):
         return example
 
     def __len__(self):
-        return self.images[-1].num_examples_accumulated
+        if len(self.images) == 0:
+            return 0
+        else:
+            return self.images[-1].num_examples_accumulated
 
     def get_real_image(self, path):
         original_img = Image.open(path).convert('RGB')
@@ -109,21 +129,24 @@ class VirtualPuzzleDataset(BaseDataset):
         if relative_index < image.num_horizontal_examples:
             example = self.get_pair_example_from_specific_image(image.horizontal, image.num_x_parts,
                                                                 image.parts_range, relative_index)
-            path = image.path_horizontal
+            image_name = image.name_horizontal
         elif relative_index < image.num_examples:
             relative_index -= image.num_horizontal_examples
             # num_y_parts is the number of x parts in the vertical image
             example = self.get_pair_example_from_specific_image(image.vertical, image.num_y_parts,
                                                                 image.parts_range, relative_index)
-            path = image.path_vertical
+            image_name = image.name_vertical
         else:
             raise IndexError("Invalid index: {0}".format(relative_index))
-        image_name, extension = os.path.splitext(path)
-        example['path'] = "{0}-{1}_{2}{3}".format(image_name,
-                                                  str(example['part1']),
-                                                  str(example['part2']),
-                                                  extension)
+        example['name'] = get_full_pair_example_name(image_name, example['part1'], example['part2'])
         return example
+
+    def get_pair_example_by_name(self, image_name, part1, part2):
+        real_pair = self.crop_pair_from_image_name(image_name, part1, part2)
+        burnt_pair = self.burn_image(real_pair)
+        name = get_full_pair_example_name(image_name, part1, part2)
+        return {'label': None, 'real': torch.unsqueeze(real_pair, 0),
+                'burnt': torch.unsqueeze(burnt_pair, 0), 'name': name}
 
     def get_pair_example_from_specific_image(self, specific_image, num_x_parts, parts_range, relative_index):
 
@@ -145,6 +168,18 @@ class VirtualPuzzleDataset(BaseDataset):
         pair_tensor = self.crop_pair_from_image(specific_image, num_x_parts, part1, part2)
         return {'part1': part1, 'part2': part2, 'label': label, 'real': pair_tensor}
 
+    def crop_pair_from_image_name(self, image_name, part1, part2):
+        image = self._get_image_by_name(image_name)
+        if ORIENTATION_MAGIC + HORIZONTAL in image_name:
+            # Horizontal
+            return self.crop_pair_from_image(image.horizontal, image.num_x_parts, part1, part2)
+        elif ORIENTATION_MAGIC + VERTICAL in image_name:
+            # Vertical
+            return self.crop_pair_from_image(image.vertical, image.num_y_parts, part1, part2)
+        else:
+            # Invalid
+            raise KeyError("No image with valid orientation magic exists for path %s" % image_name)
+
     def crop_pair_from_image(self, image, num_x_parts, part1, part2):
 
         part1_tensor = self.crop_part_from_image(image, num_x_parts, part1)
@@ -157,6 +192,32 @@ class VirtualPuzzleDataset(BaseDataset):
         column = part % num_columns
         return image[:, row * self.opt.part_size: (row + 1) * self.opt.part_size,
                      column * self.opt.part_size: (column + 1) * self.opt.part_size]
+
+    def get_image_metadata(self, image_name):
+        image = self._get_image_by_name(image_name)
+        metadata = Namespace()
+        metadata.orientation = get_info_from_file_name(image_name, ORIENTATION_MAGIC)
+        assert metadata.orientation in [HORIZONTAL, VERTICAL], "Invalid orientation in image_name"
+        metadata.full_puzzle_name = image_name
+        if metadata.orientation == HORIZONTAL:
+            metadata.num_x_parts = image.num_x_parts
+            metadata.num_y_parts = image.num_y_parts
+        elif metadata.orientation == VERTICAL:
+            metadata.num_x_parts = image.num_y_parts
+            metadata.num_y_parts = image.num_x_parts
+        return metadata
+
+    def _get_image_by_name(self, path):
+        horizontal_path = path.replace(ORIENTATION_MAGIC + VERTICAL, ORIENTATION_MAGIC + HORIZONTAL)
+        image_index = self.images_index_dict[horizontal_path]
+        return self.images[image_index]
+
+    def show_pair(self, image_name, part1, part2):
+        example = self.get_pair_example_by_name(image_name, part1, part2)
+        real_pair = example['real']
+        real_pair_numpy = tensor2im(real_pair)
+        save_image(real_pair_numpy, get_full_pair_example_name(image_name, part1, part2) + ".jpg")
+
 
 
 

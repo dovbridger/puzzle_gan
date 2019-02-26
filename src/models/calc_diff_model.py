@@ -39,7 +39,7 @@ class CalcDiffModel(BaseModel):
 
     def set_input(self, input):
         self.burnt = input['burnt'].to(self.device)
-        self.image_paths = input['path']
+        self.image_paths = input['name']
 
     def forward(self):
         self.fake = self.netG(self.burnt)
@@ -55,9 +55,16 @@ class CalcDiffModel(BaseModel):
         num_examples = self.prediction.shape[0]
         return self.prediction.reshape(num_examples, -1).mean(dim=1)
 
-    def predict_on_files(self, folder, file_names):
-        import numpy
-        return numpy.array([self.all_predictions[os.path.join(folder, file)] for file in file_names])
+    def predict(self, data_example):
+        self.set_input(data_example)
+        self.test()
+        return self.prediction.mean().item()
+
+    def instance_name(self):
+        return self.name() + '_' + self.opt.name
+
+
+
 
 
 

@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import json
-from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, read_metadata, get_file_name_from_pair
+from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, read_metadata, get_full_pair_example_name
 from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, INPUT_IMAGE_TYPE, ROOT_OF_MODEL_DATA, TEST_DATA_PATH,\
     PART_SIZE
 
@@ -308,38 +308,34 @@ def parse_java_scores(file_name):
         scores[name].append((score, method))
     return scores
 
-def create_diff_matrix2d_with_model_evaluations(model, folder_path,
-                                                num_x_parts=None, num_y_parts=None, orientation=None):
 
-    if num_x_parts is None or num_y_parts is None or orientation is None:
-        metadata = read_metadata(folder_path)
-        orientation = metadata['orientation']
-        num_x_parts = int(metadata['num_x_parts'])
-        num_y_parts = int(metadata['num_y_parts'])
+def create_diff_matrix2d_with_model_evaluations(model, dataset, metadata):
 
+    num_x_parts = metadata.num_x_parts
+    num_y_parts = metadata.num_y_parts
     num_parts = num_x_parts * num_y_parts
     diff_matrix2d = np.zeros((num_parts, num_parts), dtype='float32')
     diff_matrix2d[:][:] = INVALID_DIFF_VAL
-    existing_input_files = []
-    existing_part_pairs = []
     for part1 in range(num_parts):
+        print("Orientation {0}, part1 {1}".format(metadata.orientation, part1, num_x_parts))
         for part2 in range(num_parts):
-            file_name = get_file_name_from_pair(part1 + 1, part2 + 1, orientation) + INPUT_IMAGE_TYPE
-            if os.path.exists(os.path.join(folder_path, file_name)):
-                existing_input_files.append(file_name)
-                existing_part_pairs.append((part1, part2))
-    predictions = model.predict_on_files(folder_path, existing_input_files)
-    for i in range(len(existing_part_pairs)):
-        part1, part2 = existing_part_pairs[i]
-        # Conversion to horizontal needed
-        if orientation == 'v':
-            part1 = convert_vertical_to_horizontal_part_number(part1, num_x_parts=num_x_parts, num_y_parts=num_y_parts)
-            part2 = convert_vertical_to_horizontal_part_number(part2, num_x_parts=num_x_parts, num_y_parts=num_y_parts)
-        min_prediction = float(1) / MAX_FLOAT
-        if predictions[i] < min_prediction:
-            diff_matrix2d[part1][part2] = MAX_FLOAT
-        else:
-            diff_matrix2d[part1][part2] = (float(1) / predictions[i]) - 1
+            if part1 == part2:
+                continue
+            example_data = dataset.get_pair_example_by_name(metadata.full_puzzle_name, part1, part2)
+            prediction = model.predict(example_data)
+
+            if metadata.orientation == 'v':
+                # Conversion to horizontal needed
+                part1_horizontal = convert_vertical_to_horizontal_part_number(part1, num_x_parts=num_x_parts, num_y_parts=num_y_parts)
+                part2_horizontal = convert_vertical_to_horizontal_part_number(part2, num_x_parts=num_x_parts, num_y_parts=num_y_parts)
+            else:
+                part1_horizontal, part2_horizontal = part1, part2
+
+            min_prediction = float(1) / MAX_FLOAT
+            if prediction < min_prediction:
+                diff_matrix2d[part1_horizontal][part2_horizontal] = MAX_FLOAT
+            else:
+                diff_matrix2d[part1_horizontal][part2_horizontal] = (float(1) / prediction) - 1
     return diff_matrix2d
 
 
@@ -366,17 +362,14 @@ def load_diff_matrix_cnn(puzzle_name, model_name, model=None, file_name=None):
     return diff_matrix_cnn
 
 
-def create_diff_matrix3d_with_model_evaluations(puzzle_name, model_name, model=None,
-                                                part_size=PART_SIZE,
-                                                test_folder=TEST_DATA_PATH):
+def create_diff_matrix3d_with_model_evaluations(puzzle_name, part_size, model, dataset):
     diff_matrix3d = None
     for orientation, direction_index in [('h', 3), ('v', 1)]:
-        puzzle_folder = get_full_puzzle_name_from_characteristics(puzzle_name=str(puzzle_name),
-                                                                  part_size=str(part_size),
-                                                                  orientation=orientation)
-
-        diff_matrix2d = create_diff_matrix2d_with_model_evaluations(model,
-                                                                    folder_path=os.path.join(test_folder, puzzle_folder))
+        full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name=puzzle_name,
+                                                                     part_size=str(part_size),
+                                                                     orientation=orientation)
+        metadata = dataset.get_image_metadata(full_puzzle_name)
+        diff_matrix2d = create_diff_matrix2d_with_model_evaluations(model, dataset, metadata)
         # For the first iteration
         if diff_matrix3d is None:
             num_parts = diff_matrix2d.shape[0]
@@ -387,7 +380,7 @@ def create_diff_matrix3d_with_model_evaluations(puzzle_name, model_name, model=N
     _make_diff_matrix_symmetric(diff_matrix3d)
     max_float_diagonal(diff_matrix3d)
     try:
-        json_file_name = get_diff_matrix_cnn_file_name(puzzle_name, model_name)
+        json_file_name = get_diff_matrix_cnn_file_name(puzzle_name, model.instance_name())
         with open(json_file_name, 'w') as f:
             json.dump(diff_matrix3d.tolist(), f)
     except Exception as e:

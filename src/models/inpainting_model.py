@@ -25,7 +25,7 @@ class InpaintingModel(BaseModel):
 
     def set_input(self, input):
         self.burnt = input['burnt'].to(self.device)
-        self.image_paths = input['path']
+        self.image_paths = input['name']
 
     def forward(self):
         self.fake = self.netG(self.burnt)

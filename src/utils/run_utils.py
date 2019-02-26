@@ -11,6 +11,7 @@ def mixed_label_predictions(model):
             print("Warning - Cannot determine label from path")
             labels.append(-1)
         predictions = model.get_prediction()
+        print(predictions)
         return get_confusion_matrix_from_labled_predictions(predictions, labels)
 
 

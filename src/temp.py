@@ -12,13 +12,12 @@ def test_compare_diff_scores(models_to_compare, indexes=range(1, 21)):
 def main():
     models_to_compare = ['Original',
                          'Perfect',
-                         'CalcDiffModel_g36_d30_b4',
-                         'CalcDiffModel_g36_d40_b4',
+                         'CalcDiffModel_g44_d40_b4_virtual2',
                          'CalcDiffModel_g44_d40_b4']
-    #test_compare_diff_scores(models_to_compare, [7])
+    #test_compare_diff_scores(models_to_compare, [1])
     #combine_all_diff_scores(model_names=models_to_compare, correction_method='direct')
     from puzzle.java_utils import save_diff_matrix_cnn_for_java
-    save_diff_matrix_cnn_for_java([str(x) + 'b' for x in range(1, 21)], 'CalcDiffModel_g36_d40_b4', correction_method='direct', burn_extent='4')
+    save_diff_matrix_cnn_for_java([str(x) + 'b' for x in range(1, 21)], 'CalcDiffModel_g44_d40_b4_virtual2', correction_method='direct', burn_extent='4')
 
 if __name__ == '__main__':
     main()

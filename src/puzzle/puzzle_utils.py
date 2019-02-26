@@ -50,9 +50,8 @@ def determine_label(file_name, num_x_parts):
     # Is part1 not the last in the row
     return part1 % num_x_parts != 0
 
-
-def get_file_name_from_pair(part1, part2, orientation):
-    return str(part1) + "_" + orientation + "_" + str(part2)
+def get_full_pair_example_name(full_puzzle_name, part1, part2):
+    return full_puzzle_name + "-" + str(part1) + "_" + str(part2)
 
 
 def get_pair_from_file_name(file_name):

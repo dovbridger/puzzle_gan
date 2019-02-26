@@ -13,9 +13,12 @@ NAME_MAGIC = 'name='
 BURN_EXTENT_MAGIC = 'burn_extent='
 PART_SIZE_MAGIC = 'part_size='
 ORIENTATION_MAGIC = 'orientation='
+HORIZONTAL = 'h'
+VERTICAL = 'v'
 DELIMITER_MAGIC = '-'
 PART_SIZE = '64'
 BURN_EXTENT = '4'
 INPUT_IMAGE_TYPE = '.jpg'
+
 
 

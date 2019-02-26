@@ -93,7 +93,7 @@ class PostGanModel(BaseModel):
                 setattr(self, 'burnt_false_' + str(i), None)
                 setattr(self, 'real_false_' + str(i), None)
 
-        self.image_paths = input['path']
+        self.image_paths = input['name']
 
     def forward(self):
         assert self.burnt_false_0 is not None, "No false neighbor exist for '{0}', All true neighbor images must " \
