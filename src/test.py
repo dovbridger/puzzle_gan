@@ -94,5 +94,5 @@ if __name__ == '__main__':
     if opt.calc_loss_stats:
         loss_stats = {loss_name: round(loss_value / loss_items_count, NUM_LOSS_DIGITS) for loss_name, loss_value in loss_stats.items()}
         print_loss_stats(loss_stats, loss_stats_file)
-    print("Accuracy: {0}".format(float(i - mistake_count) / i))
+    print("Accuracy: {0}".format(float(i + 1 - mistake_count) / (i + 1)))
     webpage.save()

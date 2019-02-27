@@ -54,8 +54,9 @@ def get_transform(opt):
             lambda img: __scale_width(img, opt.loadSize[1])))
         transform_list.append(transforms.RandomCrop(opt.fineSize))
     elif opt.resize_or_crop == 'none':
-        transform_list.append(transforms.Lambda(
-            lambda img: __adjust(img)))
+        pass
+        #transform_list.append(transforms.Lambda(
+         #   lambda img: __adjust(img)))
     else:
         raise ValueError('--resize_or_crop %s is not a valid option.' % opt.resize_or_crop)
 

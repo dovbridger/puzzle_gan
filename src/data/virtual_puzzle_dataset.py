@@ -142,7 +142,13 @@ class VirtualPuzzleDataset(BaseDataset):
         return example
 
     def get_pair_example_by_name(self, image_name, part1, part2):
-        real_pair = self.crop_pair_from_image_name(image_name, part1, part2)
+        real_pair = self.crop_pair_by_image_name(image_name, part1, part2)
+
+        # Temporary JPG bug fix
+        real_pair_numpy = tensor2im(torch.unsqueeze(real_pair, 0))
+        save_image(real_pair_numpy, "temp_image2.jpg")
+        real_pair = self.get_real_image("temp_image2.jpg")
+
         burnt_pair = self.burn_image(real_pair)
         name = get_full_pair_example_name(image_name, part1, part2)
         return {'label': None, 'real': torch.unsqueeze(real_pair, 0),
@@ -168,7 +174,7 @@ class VirtualPuzzleDataset(BaseDataset):
         pair_tensor = self.crop_pair_from_image(specific_image, num_x_parts, part1, part2)
         return {'part1': part1, 'part2': part2, 'label': label, 'real': pair_tensor}
 
-    def crop_pair_from_image_name(self, image_name, part1, part2):
+    def crop_pair_by_image_name(self, image_name, part1, part2):
         image = self._get_image_by_name(image_name)
         if ORIENTATION_MAGIC + HORIZONTAL in image_name:
             # Horizontal

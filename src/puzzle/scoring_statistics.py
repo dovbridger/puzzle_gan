@@ -5,6 +5,7 @@ from puzzle.java_utils import get_ordered_neighbors, correct_invalid_values_in_m
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, read_metadata
 from utils.plot_utils import plot_y, plot_bars
 from globals import TEST_DATA_PATH, FIGURES_FOLDER
+
 ORIGINAL_DIFF_MATRIX_NAME = 'Original'
 PERFECT_DIFF_MATRIX_NAME = 'Perfect'
 DATA_LABELS = [ORIGINAL_DIFF_MATRIX_NAME, PERFECT_DIFF_MATRIX_NAME]

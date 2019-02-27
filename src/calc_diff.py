@@ -15,7 +15,7 @@ def create_diff_matrix_for_puzzle(puzzle_name, opt):
     opt.puzzle_name = puzzle_name
     dataset = VirtualPuzzleDataset()
     dataset.initialize(opt)
-    dataset.show_pair('name=1b-part_size=64-orientation=h', 27, 56)
+#    dataset.show_pair('name=1b-part_size=64-orientation=h', 27, 56)
     model = create_model(opt)
     model.setup(opt)
 
@@ -45,7 +45,7 @@ def calc_diff():
     opt = TestOptions().parse()
     opt.nThreads = 1   # test code only supports nThreads = 1
     opt.batchSize = 1
-    for puzzle_name in [str(x) + 'b' for x in range(1, 2)]:
+    for puzzle_name in [str(x) + 'b' for x in range(11, 21)]:
         create_diff_matrix_for_puzzle(puzzle_name, opt)
 
 def main():
