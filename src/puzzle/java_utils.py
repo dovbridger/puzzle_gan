@@ -96,6 +96,15 @@ def get_top_k_neighbors(part, diff_matrix2d, metadata, k, reverse=False):
     return result
 
 
+def resolve_orientation(direction, part1, part2, num_x_parts, num_y_parts):
+    assert direction in [0, 1, 2, 3], "Invalid direction"
+    if direction in [0, 1]:
+        part1 = convert_horizontal_to_vertical_part_number(part1, num_x_parts, num_y_parts)
+        part2 = convert_horizontal_to_vertical_part_number(part2, num_x_parts, num_y_parts)
+    if direction in [0, 2]:
+        part1, part2 = part2, part1
+    return direction, part1, part2
+
 def convert_vertical_to_horizontal_part_number(part, num_x_parts, num_y_parts):
     '''
     Convert a part number from a vertical based image (rotated 90 degrees to the left) to a horizontal based image

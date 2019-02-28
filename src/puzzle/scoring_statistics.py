@@ -1,10 +1,12 @@
 import numpy as np
 from os import path
 from puzzle.java_utils import get_ordered_neighbors, correct_invalid_values_in_matrix3d, INVALID_NEIGHBOR_VAL,\
-    get_java_diff_file, parse_3d_numpy_array_from_json, calc_confidence, load_diff_matrix_cnn
+    get_java_diff_file, parse_3d_numpy_array_from_json, calc_confidence, load_diff_matrix_cnn, resolve_orientation
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, read_metadata
-from utils.plot_utils import plot_y, plot_bars
-from globals import TEST_DATA_PATH, FIGURES_FOLDER
+from utils.plot_utils import plot_y, plot_bars, plot_images
+from globals import TEST_DATA_PATH, FIGURES_FOLDER, PART_SIZE
+from data.virtual_puzzle_dataset import VirtualPuzzleDataset
+from argparse import Namespace
 
 ORIGINAL_DIFF_MATRIX_NAME = 'Original'
 PERFECT_DIFF_MATRIX_NAME = 'Perfect'
@@ -59,8 +61,7 @@ def get_rank_statistics(diff_matrix3d, num_x_parts, num_y_parts):
 def flatten_and_remove_invalid_ranks(ranks):
     return np.array([val for val in ranks.flatten() if val != INVALID_NEIGHBOR_VAL])
 
-
-def split_conf_scores_to_true_and_false(conf_matrix, num_x_parts, num_y_parts):
+def split_conf_scores_to_true_and_false(conf_matrix, num_x_parts, num_y_parts, conf_score_identities=None):
     num_parts = conf_matrix.shape[1]
     true_neighbor_top_scores = []
     false_neighbor_top_scores = []
@@ -75,6 +76,8 @@ def split_conf_scores_to_true_and_false(conf_matrix, num_x_parts, num_y_parts):
                 true_neighbor_top_scores[direction].append(score)
             else:
                 false_neighbor_top_scores[direction].append(score)
+                if conf_score_identities is not None:
+                    conf_score_identities.append((score, (direction, part, neighbor)))
     return [true_neighbor_top_scores, false_neighbor_top_scores]
 
 
@@ -137,14 +140,15 @@ def _get_conf_scores(diff_matrix, num_x_parts, num_y_parts):
     return scores
 
 
-def run_diff_score_comparison(puzzle_name, correction_method='direct', model_names=DATA_LABELS):
+def run_diff_score_comparison(puzzle_name, correction_method='none', model_names=DATA_LABELS):
     diff_matrices, metadata = _load_diff_matricies_for_comparison(puzzle_name, model_names)
     # Correct the cnn diff matrix with the original diff matrix
     for i in range(len(model_names)):
         if model_names[i] not in [ORIGINAL_DIFF_MATRIX_NAME, PERFECT_DIFF_MATRIX_NAME]:
-            correct_invalid_values_in_matrix3d(diff_matrices[i],
-                                               diff_matrices[model_names.index(ORIGINAL_DIFF_MATRIX_NAME)],
-                                               method=correction_method)
+            if correction_method != 'none':
+                correct_invalid_values_in_matrix3d(diff_matrices[i],
+                                                   diff_matrices[model_names.index(ORIGINAL_DIFF_MATRIX_NAME)],
+                                                   method=correction_method)
     return compare_diff_scores(puzzle_name, diff_matrices,
                                metadata, correction_method,
                                diff_matrix_names=model_names)
@@ -251,6 +255,43 @@ def combine_all_diff_scores(model_names, correction_method='direct', indexes=ran
     plot_y(confidence,
            sort=True, colors=COLORS, labels=model_names,
            titles=['Top True Scores', 'Top False scores'], output_file_name=get_figure_name(puzzle_description, 'confidence_scores'))
+
+
+def get_top_false_confidence_score_identities(conf_matrix, num_x_parts, num_y_parts, num_results):
+    false_score_identities = []
+    _,_ = split_conf_scores_to_true_and_false(conf_matrix, num_x_parts, num_y_parts, false_score_identities)
+    false_score_identities = sorted(false_score_identities)
+    false_score_identities.reverse()
+    return false_score_identities[0: num_results]
+
+
+def visualize_confidence_mistakes(puzzle_name, model_name, num_results=1):
+    direction_names = ['Up', 'Down', 'Left', 'Right']
+    x_parts, y_parts = 15, 10
+    diff_matrix = load_diff_matrix_cnn(puzzle_name, model_name)
+    top_mistakes_identities = get_top_false_confidence_score_identities(calc_confidence(diff_matrix), x_parts, y_parts, num_results)
+    opt = Namespace
+    opt.dataroot = r'C:\SHARE\checkouts\puzzle_gan_data\datasets\virtual_puzzle_parts'
+    opt.phase = 'test'
+    opt.part_size = 64
+    opt.puzzle_name = puzzle_name
+    opt.num_false_examples = 1
+    opt.burn_extent = 4
+    dataset = VirtualPuzzleDataset()
+    dataset.initialize(opt)
+    images = []
+    titles = []
+    image_name_horizontal = get_full_puzzle_name_from_characteristics(puzzle_name, opt.part_size)
+    image_name_vertical = image_name_horizontal.replace('orientation=h', 'orientation=v')
+    for score, (direction, part1, part2) in top_mistakes_identities:
+        part2 = int(part2)
+        direction, part1, part2 = resolve_orientation(direction, part1, part2, num_x_parts=15, num_y_parts=10)
+        image_name = image_name_horizontal if direction in [2, 3] else image_name_vertical
+        pair_example = dataset.get_pair_numpy(image_name, part1, part2)
+        images.append(pair_example)
+        titles.append("{0}-{1}_{2} : {3}".format(direction_names[direction], part1, part2, round(score, 2)))
+    plot_images(np.array(images), titles=titles, figsize=(36, 18),
+                output_file_name=get_figure_name(puzzle_name, 'top_mistakes'))
 
 
 def get_figure_name(puzzle_description, figure_type):

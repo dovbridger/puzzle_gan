@@ -15,15 +15,8 @@ def create_diff_matrix_for_puzzle(puzzle_name, opt):
     opt.puzzle_name = puzzle_name
     dataset = VirtualPuzzleDataset()
     dataset.initialize(opt)
-#    dataset.show_pair('name=1b-part_size=64-orientation=h', 27, 56)
     model = create_model(opt)
     model.setup(opt)
-
- #   for i, data in enumerate(dataset_h):
- #       model.set_input(data)
- #       model.predict_and_store()
- #   print('finished horiznotal')
-
     create_diff_matrix3d_with_model_evaluations(opt.puzzle_name, opt.part_size, model, dataset)
 
 
@@ -45,7 +38,7 @@ def calc_diff():
     opt = TestOptions().parse()
     opt.nThreads = 1   # test code only supports nThreads = 1
     opt.batchSize = 1
-    for puzzle_name in [str(x) + 'b' for x in range(11, 21)]:
+    for puzzle_name in [str(x) + 'b' for x in range(1, 2)]:
         create_diff_matrix_for_puzzle(puzzle_name, opt)
 
 def main():

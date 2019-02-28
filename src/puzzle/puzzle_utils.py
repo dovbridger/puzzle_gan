@@ -14,7 +14,7 @@ def get_info_from_file_name(file_name, requested_info_magic):
 
 def get_full_puzzle_name_from_characteristics(puzzle_name, part_size=PART_SIZE, orientation='h'):
     return DELIMITER_MAGIC.join([NAME_MAGIC + puzzle_name,
-                                 PART_SIZE_MAGIC + part_size,
+                                 PART_SIZE_MAGIC + str(part_size),
                                  ORIENTATION_MAGIC + orientation])
 
 
@@ -49,6 +49,7 @@ def determine_label(file_name, num_x_parts):
         return False
     # Is part1 not the last in the row
     return part1 % num_x_parts != 0
+
 
 def get_full_pair_example_name(full_puzzle_name, part1, part2):
     return full_puzzle_name + "-" + str(part1) + "_" + str(part2)

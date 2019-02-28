@@ -144,11 +144,21 @@ class VirtualPuzzleDataset(BaseDataset):
     def get_pair_example_by_name(self, image_name, part1, part2):
         real_pair = self.crop_pair_by_image_name(image_name, part1, part2)
 
-        # Temporary JPG bug fix
-        real_pair_numpy = tensor2im(torch.unsqueeze(real_pair, 0))
-        save_image(real_pair_numpy, "temp_image2.jpg")
-        real_pair = self.get_real_image("temp_image2.jpg")
+########## Temporary JPG bug fix ###########################
+        #orientation = get_info_from_file_name(image_name, ORIENTATION_MAGIC)
 
+        #temp_folder = os.join('temp', image_name)
+        #comparison_folder = os.path.join(r'C:\SHARE\images\pair_inputs_for_completion\test', image_name)
+        #temp_file_name = os.path.join(temp_folder, "{0}_{1}_{2}.jpg".format(part1, orientation, part2))
+        #comparison_file_name = os.path.join(comparison_folder, "{0}_{1}_{2}.jpg".format(part1 + 1, orientation, part2 + 1))
+
+        #real_pair_numpy = tensor2im(torch.unsqueeze(real_pair, 0))
+        #save_image(real_pair_numpy, temp_file_name)
+        #real_pair = self.get_real_image(comparison_file_name)
+        #comparison_pair = self.get_real_image(comparison_file_name)
+        #if (real_pair != comparison_pair).nonzero().shape[0] == 0:
+            #os.rename(temp_file_name, os.path.join(temp_folder, "same-"+os.path.basename(temp_file_name)))
+##########################################################
         burnt_pair = self.burn_image(real_pair)
         name = get_full_pair_example_name(image_name, part1, part2)
         return {'label': None, 'real': torch.unsqueeze(real_pair, 0),
@@ -218,11 +228,15 @@ class VirtualPuzzleDataset(BaseDataset):
         image_index = self.images_index_dict[horizontal_path]
         return self.images[image_index]
 
-    def show_pair(self, image_name, part1, part2):
+    def save_pair(self, image_name, part1, part2):
+        real_pair_numpy = self.get_pair_numpy(image_name, part1, part2)
+        save_image(real_pair_numpy, get_full_pair_example_name(image_name, part1, part2) + ".jpg")
+
+    def get_pair_numpy(self, image_name, part1, part2):
         example = self.get_pair_example_by_name(image_name, part1, part2)
         real_pair = example['real']
-        real_pair_numpy = tensor2im(real_pair)
-        save_image(real_pair_numpy, get_full_pair_example_name(image_name, part1, part2) + ".jpg")
+        return tensor2im(real_pair)
+
 
 
 
