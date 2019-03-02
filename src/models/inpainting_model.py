@@ -1,6 +1,7 @@
 
 import models.networks as networks
 from models.base_model import BaseModel
+from utils.network_utils import get_generator_path
 
 
 class InpaintingModel(BaseModel):
@@ -15,17 +16,22 @@ class InpaintingModel(BaseModel):
 
     def initialize(self, opt):
         BaseModel.initialize(self, opt)
-        assert opt.generator_window >= 2 * opt.burn_extent,\
-            "The generator window({0}) is not large enough to inpaint the burnt area({1})".format(opt.generator_window, 2 * opt.burn_extent)
         assert not opt.isTrain, "Inpainting model is not to be used in training mode"
-
-        self.model_names = ['G']
-        self.visual_names = ['fake']
+        self.model_names = []
+        self.visual_names = ['first', 'second', 'correct']
         self.netG = networks.get_generator(opt)
+        self.load_network(get_generator_path(opt), self.netG)
 
     def set_input(self, input):
-        self.burnt = input['burnt'].to(self.device)
+        self.burnt = input['burnt'][0].to(self.device)
         self.image_paths = input['name']
 
     def forward(self):
-        self.fake = self.netG(self.burnt)
+        for i, visual in enumerate(self.visual_names):
+            if i < self.burnt.shape[0]:
+                setattr(self, visual, self.netG(self.burnt[i].unsqueeze(0)))
+            else:
+                setattr(self, visual, None)
+
+
+

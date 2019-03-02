@@ -71,9 +71,9 @@ class BaseOptions():
         parser.add_argument('--generator_to_load', type=str, default=None,
                             help='Which generator model to load')
         parser.add_argument('--generator_epoch', type=str, default='latest')
-        parser.add_argument('--discriminator_to_load', type=str, default=None,
+        parser.add_argument('--network_to_load', type=str, default=None,
                             help='Which discriminator model to load')
-        parser.add_argument('--discriminator_epoch', type=str, default='latest')
+        parser.add_argument('--network_load_epoch', type=str, default='latest')
         parser.add_argument('--delay_start', type=int, default=1,
                             help="Seconds to delay the start of the script after running it")
         parser.add_argument('--save_mistakes_only', action='store_true',

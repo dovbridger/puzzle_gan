@@ -29,6 +29,9 @@ class BaseModel:
         self.visual_names = []
         self.image_paths = []
 
+        assert opt.generator_window >= 2 * opt.burn_extent,\
+            "The generator window({0}) is not large enough to inpaint the burnt area({1})".format(opt.generator_window, 2 * opt.burn_extent)
+
     def set_input(self, input):
         self.input = input
 

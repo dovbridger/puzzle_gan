@@ -15,12 +15,7 @@ INVALID_NEIGHBOR_VAL = -1
 
 DIFF_MATRIX_CNN_FOLDER = os.path.join(ROOT_OF_MODEL_DATA, 'diff_matrix_cnn')
 
-
-START_MAGIC = "$"
-DIM_1_MAGIC = "&"
-DIM_2_MAGIC = "#"
-COMMA_MAGIC = ","
-
+DIRECTION_NAMES = ['UP', 'DOWN', 'LEFT', 'RIGHT']
 
 def parse_3d_numpy_array_from_json(file_name):
     with open(file_name, 'r') as f:
@@ -33,35 +28,6 @@ def save_3d_numpy_array_to_json(array, file_name):
     with open(file_name, 'w') as f:
         json.dump(array.tolist(), f)
 
-
-def parse_3d_numpy_array_from_file_old(file_name):
-    with open(file_name, 'r') as f:
-        content = f.read()
-    if not content.startswith(START_MAGIC):
-        raise Exception("'parse_3d_numpy_array_from_file' called with wrong file type")
-    content = content.replace(START_MAGIC, '')
-    # Get all delimited strings except the last which will be ''
-    first_dim_parse = content.split(DIM_1_MAGIC)[:-1]
-    second_dim_parse = [matrix_2d.split(DIM_2_MAGIC)[:-1] for matrix_2d in first_dim_parse]
-    third_dim_parse = []
-    for dim1 in second_dim_parse:
-        third_dim_parse.append([dim2.split(COMMA_MAGIC) for dim2 in dim1])
-    result = np.array(third_dim_parse, dtype='float32')
-    result[result > MAX_FLOAT] = MAX_FLOAT
-    return result
-
-
-def save_3d_numpy_array_to_file_old(array, file_name):
-    with open(file_name, 'w') as f:
-        f.write(START_MAGIC)
-        for i in range(array.shape[0]):
-            for j in range(array.shape[1]):
-                for k in range(array.shape[2]):
-                    if k != 0:
-                        f.write(COMMA_MAGIC)
-                    f.write(str(array[i][j][k]))
-                f.write(DIM_2_MAGIC)
-            f.write(DIM_1_MAGIC)
 
 
 def get_ordered_neighbors(part, diff_matrix2d):
@@ -103,7 +69,7 @@ def resolve_orientation(direction, part1, part2, num_x_parts, num_y_parts):
         part2 = convert_horizontal_to_vertical_part_number(part2, num_x_parts, num_y_parts)
     if direction in [0, 2]:
         part1, part2 = part2, part1
-    return direction, part1, part2
+    return part1, part2
 
 def convert_vertical_to_horizontal_part_number(part, num_x_parts, num_y_parts):
     '''

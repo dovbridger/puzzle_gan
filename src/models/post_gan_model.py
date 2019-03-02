@@ -53,8 +53,8 @@ class PostGanModel(BaseModel):
             print("A post training discriminator already exists, a clean discriminator will not be copied")
         else:
             clean_discriminator_path = path.join(opt.checkpoints_dir,
-                                                 opt.discriminator_to_load,
-                                                 get_network_file_name(opt.discriminator_epoch, 'D'))
+                                                 opt.network_to_load,
+                                                 get_network_file_name(opt.network_load_epoch, 'D'))
             clean_discriminator_target_path = path.join(self.save_dir,
                                                         get_network_file_name('latest', 'D' + opt.model_suffix))
             print("copying clean discriminator from '{0}' to '{1}'".format(
@@ -65,8 +65,8 @@ class PostGanModel(BaseModel):
             # Use the same GAN setup (network name + epoch)
             # of the discriminator for the generator as well
             source_generator_network_path = path.join(opt.checkpoints_dir,
-                                               opt.discriminator_to_load,
-                                               get_network_file_name(opt.discriminator_epoch, 'G'))
+                                               opt.network_to_load,
+                                               get_network_file_name(opt.network_load_epoch, 'G'))
             system('copy  "{0}" "{1}"'.format(source_generator_network_path, post_train_generator_path))
         self.load_network(post_train_generator_path, self.netG)
 

@@ -2,7 +2,7 @@ import numpy as np
 import os
 from utils.plot_utils import plot_y, plot_bars
 from globals import NAME_MAGIC, DELIMITER_MAGIC, PART_SIZE, ORIENTATION_MAGIC,\
-    PART_SIZE_MAGIC, METADATA_FILE_NAME
+    PART_SIZE_MAGIC, METADATA_FILE_NAME, HORIZONTAL, VERTICAL
 
 
 def get_info_from_file_name(file_name, requested_info_magic):
@@ -54,6 +54,11 @@ def determine_label(file_name, num_x_parts):
 def get_full_pair_example_name(full_puzzle_name, part1, part2):
     return full_puzzle_name + "-" + str(part1) + "_" + str(part2)
 
+
+def set_orientation_in_name(full_puzzle_name, orientation):
+    return get_full_puzzle_name_from_characteristics(puzzle_name=get_info_from_file_name(full_puzzle_name, NAME_MAGIC),
+                                                     part_size=get_info_from_file_name(full_puzzle_name, PART_SIZE_MAGIC),
+                                                     orientation=orientation)
 
 def get_pair_from_file_name(file_name):
     # remove extension

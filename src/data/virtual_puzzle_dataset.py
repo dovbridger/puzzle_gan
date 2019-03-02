@@ -9,7 +9,7 @@ from argparse import Namespace
 from bisect import bisect
 from random import choice
 from globals import PART_SIZE_MAGIC, ORIENTATION_MAGIC, HORIZONTAL, VERTICAL, NAME_MAGIC
-from puzzle.puzzle_utils import get_full_pair_example_name, get_info_from_file_name
+from puzzle.puzzle_utils import get_full_pair_example_name, get_info_from_file_name, set_orientation_in_name
 
 
 class VirtualPuzzleDataset(BaseDataset):
@@ -50,8 +50,7 @@ class VirtualPuzzleDataset(BaseDataset):
             current_image = Namespace()
             current_image.image_dir = os.path.dirname(path)
             current_image.name_horizontal, current_image.image_extension = os.path.splitext(os.path.basename(path))
-            current_image.name_vertical = current_image.name_horizontal.replace(ORIENTATION_MAGIC + HORIZONTAL,
-                                                                                ORIENTATION_MAGIC + VERTICAL)
+            current_image.name_vertical = set_orientation_in_name(current_image.name_horizontal, VERTICAL)
 
             current_image.horizontal = self.get_real_image(os.path.join(
                 current_image.image_dir,
@@ -161,8 +160,7 @@ class VirtualPuzzleDataset(BaseDataset):
 ##########################################################
         burnt_pair = self.burn_image(real_pair)
         name = get_full_pair_example_name(image_name, part1, part2)
-        return {'label': None, 'real': torch.unsqueeze(real_pair, 0),
-                'burnt': torch.unsqueeze(burnt_pair, 0), 'name': name}
+        return {'real': real_pair, 'burnt': burnt_pair, 'name': name}
 
     def get_pair_example_from_specific_image(self, specific_image, num_x_parts, parts_range, relative_index):
 
@@ -186,11 +184,10 @@ class VirtualPuzzleDataset(BaseDataset):
 
     def crop_pair_by_image_name(self, image_name, part1, part2):
         image = self._get_image_by_name(image_name)
-        if ORIENTATION_MAGIC + HORIZONTAL in image_name:
-            # Horizontal
+        orientation = get_info_from_file_name(image_name, ORIENTATION_MAGIC)
+        if orientation == HORIZONTAL:
             return self.crop_pair_from_image(image.horizontal, image.num_x_parts, part1, part2)
-        elif ORIENTATION_MAGIC + VERTICAL in image_name:
-            # Vertical
+        elif orientation == VERTICAL:
             return self.crop_pair_from_image(image.vertical, image.num_y_parts, part1, part2)
         else:
             # Invalid
@@ -224,7 +221,7 @@ class VirtualPuzzleDataset(BaseDataset):
         return metadata
 
     def _get_image_by_name(self, path):
-        horizontal_path = path.replace(ORIENTATION_MAGIC + VERTICAL, ORIENTATION_MAGIC + HORIZONTAL)
+        horizontal_path = set_orientation_in_name(path, HORIZONTAL)
         image_index = self.images_index_dict[horizontal_path]
         return self.images[image_index]
 
@@ -235,7 +232,8 @@ class VirtualPuzzleDataset(BaseDataset):
     def get_pair_numpy(self, image_name, part1, part2):
         example = self.get_pair_example_by_name(image_name, part1, part2)
         real_pair = example['real']
-        return tensor2im(real_pair)
+        return tensor2im(torch.unzsqueeze(real_pair, 0))
+
 
 
 

@@ -20,7 +20,6 @@ def get_true_neighbor(part, direction, num_x_parts, num_y_parts):
     :param direction: 0-up, 1-down, 2-left ,3-right
     :return: The correct neighbor for a piece "part" direction "direction" given the puzzle dimensions
     '''
-
     if direction == 0:
         if part >= num_x_parts:
             return part - num_x_parts
@@ -61,7 +60,8 @@ def get_rank_statistics(diff_matrix3d, num_x_parts, num_y_parts):
 def flatten_and_remove_invalid_ranks(ranks):
     return np.array([val for val in ranks.flatten() if val != INVALID_NEIGHBOR_VAL])
 
-def split_conf_scores_to_true_and_false(conf_matrix, num_x_parts, num_y_parts, conf_score_identities=None):
+
+def split_conf_scores_to_true_and_false(conf_matrix, num_x_parts, num_y_parts):
     num_parts = conf_matrix.shape[1]
     true_neighbor_top_scores = []
     false_neighbor_top_scores = []
@@ -76,9 +76,24 @@ def split_conf_scores_to_true_and_false(conf_matrix, num_x_parts, num_y_parts, c
                 true_neighbor_top_scores[direction].append(score)
             else:
                 false_neighbor_top_scores[direction].append(score)
-                if conf_score_identities is not None:
-                    conf_score_identities.append((score, (direction, part, neighbor)))
     return [true_neighbor_top_scores, false_neighbor_top_scores]
+
+
+def get_confidence_score_identities(conf_matrix, num_x_parts, num_y_parts):
+    conf_score_identities = []
+    num_parts = conf_matrix.shape[1]
+    for direction in range(4):
+        top_scores = np.array([get_ordered_neighbors(part, conf_matrix[direction][:][:])[-1:-3:-1]
+                               for part in range(num_parts)])
+        for part in range(num_parts):
+            true_neighbor = get_true_neighbor(part, direction, num_x_parts, num_y_parts)
+            neighbor1, score1 = top_scores[part][0]
+            if true_neighbor != neighbor1:
+                neighbors = tuple((int(neighbor)) for neighbor, score in top_scores[part])
+                if true_neighbor != INVALID_NEIGHBOR_VAL:
+                    neighbors += (true_neighbor,)
+                conf_score_identities.append((score1, (direction, part, neighbors)))
+    return conf_score_identities
 
 
 def count_best_buddies(diff_matrix3d, num_x_parts, num_y_parts):
@@ -258,8 +273,7 @@ def combine_all_diff_scores(model_names, correction_method='direct', indexes=ran
 
 
 def get_top_false_confidence_score_identities(conf_matrix, num_x_parts, num_y_parts, num_results):
-    false_score_identities = []
-    _,_ = split_conf_scores_to_true_and_false(conf_matrix, num_x_parts, num_y_parts, false_score_identities)
+    false_score_identities = get_confidence_score_identities(conf_matrix, num_x_parts, num_y_parts)
     false_score_identities = sorted(false_score_identities)
     false_score_identities.reverse()
     return false_score_identities[0: num_results]
