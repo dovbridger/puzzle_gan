@@ -78,6 +78,8 @@ class BaseOptions():
                             help="Seconds to delay the start of the script after running it")
         parser.add_argument('--save_mistakes_only', action='store_true',
                             help='Save only images of wrong classification during discriminator_test')
+        parser.add_argument('--use_log_diff', action='store_true',
+                            help='Use logarithmic conversion from discriminator probability to diff scores')
         self.initialized = True
         return parser
 

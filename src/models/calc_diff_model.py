@@ -28,7 +28,7 @@ class CalcDiffModel(BaseModel):
         self.netG = networks.get_generator(opt)
         generator_network_path = os.path.join(opt.checkpoints_dir,
                                               opt.network_to_load,
-                                              get_network_file_name('latest', 'G' + opt.model_suffix))
+                                              get_network_file_name('latest', 'G'))
         self.load_network(generator_network_path, self.netG)
 
         self.netD = networks.get_discriminator(opt)

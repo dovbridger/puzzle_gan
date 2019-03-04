@@ -9,8 +9,7 @@ import numpy as np
 import json
 import utils.plot_utils
 from utils.run_utils import mixed_label_predictions, virtual_model_predictions
-
-NUM_LOSS_DIGITS = 3
+from globals import NUM_DECIMAL_DIGITS
 
 if __name__ == '__main__':
     opt = TestOptions().parse()
@@ -46,8 +45,8 @@ if __name__ == '__main__':
                 probabilities = model.get_probabilities()
                 for key in probabilities:
                     probability_results[key].append(probabilities[key].tolist())
-                    true_probablitiy = round(probabilities['True'].mean().item(), NUM_LOSS_DIGITS)
-                    false_probability = round(probabilities['False'].mean().item(), NUM_LOSS_DIGITS)
+                    true_probablitiy = round(probabilities['True'].mean().item(), NUM_DECIMAL_DIGITS)
+                    false_probability = round(probabilities['False'].mean().item(), NUM_DECIMAL_DIGITS)
                     image_text = {'fake_true': (true_probablitiy, 'green' if true_probablitiy >= 0.5 else 'red'),
                                   'fake_false_0': (false_probability, 'green' if false_probability < 0.5 else 'red')}
                     mistake = true_probablitiy < 0.5 or false_probability >= 0.5
@@ -59,7 +58,7 @@ if __name__ == '__main__':
                 mistake = 'false' in conclusions[0]
                 for conclusion in conclusions:
                     cm[conclusion] += 1
-                image_text = {'fake': (round(predictions[0].item(), NUM_LOSS_DIGITS), 'red' if mistake else 'green')}
+                image_text = {'fake': (round(predictions[0].item(), NUM_DECIMAL_DIGITS), 'red' if mistake else 'green')}
         visuals = model.get_current_visuals()
         img_path = model.get_image_paths()
         losses = None
@@ -71,7 +70,7 @@ if __name__ == '__main__':
         if i % opt.save_images_frequency == 0:
             print('processing (%04d)-th image... %s' % (i, img_path))
             if opt.calc_loss_stats:
-                image_text = {key: round(value, NUM_LOSS_DIGITS) for key, value in losses.items()}
+                image_text = {key: round(value, NUM_DECIMAL_DIGITS) for key, value in losses.items()}
                 min_loss = min(image_text.values())
                 max_loss = max(image_text.values())
                 for key, value in losses.items():
@@ -92,7 +91,7 @@ if __name__ == '__main__':
         else:
             print_confusion_matrix(cm, cm_file)
     if opt.calc_loss_stats:
-        loss_stats = {loss_name: round(loss_value / loss_items_count, NUM_LOSS_DIGITS) for loss_name, loss_value in loss_stats.items()}
+        loss_stats = {loss_name: round(loss_value / loss_items_count, NUM_DECIMAL_DIGITS) for loss_name, loss_value in loss_stats.items()}
         print_loss_stats(loss_stats, loss_stats_file)
     print("Accuracy: {0}".format(float(i + 1 - mistake_count) / (i + 1)))
     webpage.save()

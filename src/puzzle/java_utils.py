@@ -14,6 +14,7 @@ INVALID_DIFF_VAL = -2
 INVALID_NEIGHBOR_VAL = -1
 
 DIFF_MATRIX_CNN_FOLDER = os.path.join(ROOT_OF_MODEL_DATA, 'diff_matrix_cnn')
+PROBABILITY_MATRIX_FOLDER = os.path.join(ROOT_OF_MODEL_DATA, 'probability_matrix')
 
 DIRECTION_NAMES = ['UP', 'DOWN', 'LEFT', 'RIGHT']
 
@@ -162,10 +163,10 @@ def correct_invalid_values_in_matrix3d(matrix3d, correction_matrix3d, invalid_va
         _make_diff_matrix_symmetric(matrix3d)
 
 
-def max_float_diagonal(diff_matrix):
+def set_diagonal_to_value(diff_matrix, value=MAX_FLOAT):
     for i in range(4):
         for j in range(diff_matrix.shape[1]):
-            diff_matrix[i][j][j] = MAX_FLOAT
+            diff_matrix[i][j][j] = value
 
 def _get_mean_without_max_float(row):
     non_max_values = row[row < MAX_FLOAT]
@@ -314,8 +315,37 @@ def create_diff_matrix2d_with_model_evaluations(model, dataset, metadata):
     return diff_matrix2d
 
 
+def create_probability_matrix2d_with_model_evaluations(model, dataset, metadata):
+    num_x_parts = metadata.num_x_parts
+    num_y_parts = metadata.num_y_parts
+    num_parts = num_x_parts * num_y_parts
+    probability_matrix2d = np.zeros((num_parts, num_parts), dtype='float32')
+    probability_matrix2d[:][:] = INVALID_DIFF_VAL
+    for part1 in range(num_parts):
+        print("Orientation {0}, part1 {1}".format(metadata.orientation, part1, num_x_parts))
+        for part2 in range(num_parts):
+            if part1 == part2:
+                continue
+            example_data = dataset.get_pair_example_by_name(metadata.full_puzzle_name, part1, part2)
+            prediction = model.predict(example_data)
+
+            if metadata.orientation == 'v':
+                # Conversion to horizontal needed
+                part1_horizontal = convert_vertical_to_horizontal_part_number(part1, num_x_parts=num_x_parts, num_y_parts=num_y_parts)
+                part2_horizontal = convert_vertical_to_horizontal_part_number(part2, num_x_parts=num_x_parts, num_y_parts=num_y_parts)
+            else:
+                part1_horizontal, part2_horizontal = part1, part2
+
+            probability_matrix2d[part1_horizontal][part2_horizontal] = prediction
+    return probability_matrix2d
+
+
 def get_diff_matrix_cnn_file_name(puzzle_name, model_name):
     return os.path.join(DIFF_MATRIX_CNN_FOLDER, model_name + "-" + puzzle_name + ".json")
+
+
+def get_probability_matrix_file_name(puzzle_name, model_name):
+    return os.path.join(PROBABILITY_MATRIX_FOLDER, model_name + "-" + puzzle_name + ".json")
 
 
 def load_diff_matrix_cnn(puzzle_name, model_name, model=None, file_name=None):
@@ -337,6 +367,14 @@ def load_diff_matrix_cnn(puzzle_name, model_name, model=None, file_name=None):
     return diff_matrix_cnn
 
 
+def load_diff_matrix_cnn_from_probability(puzzle_name, model_name, file_name=None, use_log=False):
+    if file_name is None:
+        file_name = get_probability_matrix_file_name(puzzle_name, model_name)
+    with open(file_name, 'r') as f:
+        probability_matrix = np.array(json.load(f))
+    return convert_probability_matrix_to_diff(probability_matrix, use_log)
+
+
 def create_diff_matrix3d_with_model_evaluations(puzzle_name, part_size, model, dataset):
     diff_matrix3d = None
     for orientation, direction_index in [('h', 3), ('v', 1)]:
@@ -353,7 +391,7 @@ def create_diff_matrix3d_with_model_evaluations(puzzle_name, part_size, model, d
         diff_matrix3d[direction_index][:][:] = diff_matrix2d
 
     _make_diff_matrix_symmetric(diff_matrix3d)
-    max_float_diagonal(diff_matrix3d)
+    set_diagonal_to_value(diff_matrix3d)
     try:
         json_file_name = get_diff_matrix_cnn_file_name(puzzle_name, model.instance_name())
         with open(json_file_name, 'w') as f:
@@ -365,6 +403,42 @@ def create_diff_matrix3d_with_model_evaluations(puzzle_name, part_size, model, d
     return diff_matrix3d
 
 
+def create_probability_matrix3d_with_model_evaluations(puzzle_name, part_size, model, dataset):
+    probability_matrix3d = None
+    for orientation, direction_index in [('h', 3), ('v', 1)]:
+        full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name=puzzle_name,
+                                                                     part_size=str(part_size),
+                                                                     orientation=orientation)
+        metadata = dataset.get_image_metadata(full_puzzle_name)
+        probability_matrix2d = create_probability_matrix2d_with_model_evaluations(model, dataset, metadata)
+        # For the first iteration
+        if probability_matrix3d is None:
+            num_parts = probability_matrix2d.shape[0]
+            probability_matrix3d = np.zeros((4, num_parts, num_parts), dtype=probability_matrix2d.dtype)
+
+        probability_matrix3d[direction_index][:][:] = probability_matrix2d
+
+    _make_diff_matrix_symmetric(probability_matrix3d)
+    set_diagonal_to_value(probability_matrix3d, value=0)
+    try:
+        json_file_name = get_probability_matrix_file_name(puzzle_name, model.instance_name())
+        with open(json_file_name, 'w') as f:
+            json.dump(probability_matrix3d.tolist(), f)
+    except Exception as e:
+        print("Could not save probability_matrix to json file '" + json_file_name + "'")
+        print("Exception: " + str(e))
+        pass
+    return probability_matrix3d
 
 
+def convert_probability_matrix_to_diff(probability_matrix3d, use_log):
+
+    if use_log:
+        diff_matrix3d = np.where(probability_matrix3d == 0, MAX_FLOAT, -np.log(probability_matrix3d))
+    else:
+        min_prediction = float(1) / MAX_FLOAT
+        diff_matrix3d = np.where(probability_matrix3d <= min_prediction,
+                                 MAX_FLOAT,
+                                 (float(1) / probability_matrix3d) - 1)
+    return diff_matrix3d
 
