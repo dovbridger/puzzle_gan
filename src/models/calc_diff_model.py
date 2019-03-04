@@ -3,12 +3,14 @@ import models.networks as networks
 from models.base_model import BaseModel
 import os
 from utils.network_utils import get_network_file_name, get_discriminator_input
+from torch import Tensor, unsqueeze
 
+CALC_DIFF_MODEL_NAME = 'CalcDiffModel'
 
 class CalcDiffModel(BaseModel):
 
     def name(self):
-        return 'CalcDiffModel'
+        return CALC_DIFF_MODEL_NAME
 
     @staticmethod
     def modify_commandline_options(parser, is_train=True):
@@ -25,21 +27,21 @@ class CalcDiffModel(BaseModel):
         assert not opt.isTrain, "calc_diff model is not to be used in training mode"
         self.netG = networks.get_generator(opt)
         generator_network_path = os.path.join(opt.checkpoints_dir,
-                                              opt.discriminator_to_load,
-                                              get_network_file_name('latest', 'G' + opt.model_suffix))
+                                              opt.network_to_load,
+                                              get_network_file_name('latest', 'G'))
         self.load_network(generator_network_path, self.netG)
 
         self.netD = networks.get_discriminator(opt)
         discriminator_network_path = os.path.join(opt.checkpoints_dir,
-                                                  opt.discriminator_to_load,
-                                                  get_network_file_name(opt.discriminator_epoch, 'D' + opt.model_suffix))
+                                                  opt.network_to_load,
+                                                  get_network_file_name(opt.network_load_epoch, 'D' + opt.model_suffix))
         self.load_network(discriminator_network_path, self.netD)
         self.all_predictions = {}
         self.visual_names = ['fake']
 
     def set_input(self, input):
         self.burnt = input['burnt'].to(self.device)
-        self.image_paths = input['path']
+        self.image_paths = input['name']
 
     def forward(self):
         self.fake = self.netG(self.burnt)
@@ -55,9 +57,19 @@ class CalcDiffModel(BaseModel):
         num_examples = self.prediction.shape[0]
         return self.prediction.reshape(num_examples, -1).mean(dim=1)
 
-    def predict_on_files(self, folder, file_names):
-        import numpy
-        return numpy.array([self.all_predictions[os.path.join(folder, file)] for file in file_names])
+    def predict(self, data_example):
+        for key in data_example:
+            if isinstance(data_example[key], Tensor):
+                data_example[key] = unsqueeze(data_example[key], 0)
+        self.set_input(data_example)
+        self.test()
+        return self.prediction.mean().item()
+
+    def instance_name(self):
+        return self.name() + '_' + self.opt.name
+
+
+
 
 
 

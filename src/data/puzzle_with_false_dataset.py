@@ -57,7 +57,7 @@ class PuzzleWithFalseDataset(PuzzleDataset):
 
         # List containing the burnt version of each image in 'real_images_false'
         burnt_images_false = [self.burn_image(image) for image in real_images_false]
-        return {'real_true': real_image_true, 'burnt_true': burnt_image_true, 'path': path_true,
+        return {'real_true': real_image_true, 'burnt_true': burnt_image_true, 'name': path_true,
                 'burnt_false': burnt_images_false, 'real_false': real_images_false}
 
     def get_false_paths(self, true_path):

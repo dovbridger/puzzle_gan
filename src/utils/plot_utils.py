@@ -2,7 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-def plot_images(ims, figsize=(12, 6), rows=1, interp=False, titles=None, colors=None, output_file_name=None):
+def plot_images(ims, figsize=(12, 6), rows=None, interp=False, titles=None, colors=None, output_file_name=None):
+    if rows == None:
+        rows = int(np.sqrt(len(ims)))
     if colors is None:
         colors = ['black' for i in range(len(ims))]
     if type(ims[0]) is np.ndarray:
@@ -18,7 +20,8 @@ def plot_images(ims, figsize=(12, 6), rows=1, interp=False, titles=None, colors=
         plt.imshow(ims[i], interpolation=None if interp else 'none')
     if output_file_name is not None:
         plt.savefig(output_file_name)
-    plt.show()
+    else:
+        plt.show()
 
 
 def _get_axes_from_data(data_array):

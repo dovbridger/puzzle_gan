@@ -24,3 +24,28 @@ def get_centered_window_indexes(initial_size, required_window_size):
 
 def get_network_file_name(which_epoch, name):
     return'%s_net_%s.pth' % (which_epoch, name)
+
+
+def get_network_path(opt, network_name):
+    return os.path.join(opt.checkpoints_dir,
+                        opt.network_to_load,
+                        get_network_file_name(opt.network_load_epoch, network_name))
+
+
+def get_generator_path(opt):
+    if opt.network_to_load is None:
+        opt_file = os.path.join(opt.checkpoints_dir, opt.container_model, 'opt.txt')
+        opt.network_to_load = get_option_from_opt_file(opt_file, 'network_to_load')
+    return get_network_path(opt, 'G')
+
+
+def get_option_from_opt_file(opt_file, option_name):
+    with open(opt_file, 'r') as f:
+        options = f.read()
+    key = option_name + ': '
+    key_start = options.find(key)
+    if key_start == -1:
+        return None
+    option_start = key_start + len(key)
+    option_end = option_start + options[option_start:].find(' ')
+    return options[option_start:option_end]

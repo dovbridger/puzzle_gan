@@ -1,0 +1,1 @@
+python test2.py --experiment_name 1b --puzzle_name 1b --display_winsize 360 --serial_batches --name show_mistakes --model inpainting --how_many 9999 --num_results 36 --burn_extent 4 --dataroot ../../puzzle_gan_data/datasets/virtual_puzzle_parts --generator_window 8 --resize_or_crop none --dataset_name confidence_visualizer --container_model g44_d40_b4_virtual

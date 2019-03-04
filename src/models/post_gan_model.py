@@ -21,8 +21,6 @@ class PostGanModel(BaseModel):
         parser.add_argument('--model_suffix', type=str, default='_post',
                             help='In checkpoints_dir, [which_epoch]_net_D[model_suffix].pth will'
                             ' be loaded as the discriminator of PostGanModel')
-        parser.add_argument('--generator_file_name', type=str, default='latest_net_G.pth',
-                            help='File name of the generator model that we want to use to post train the discriminator')
 
         # Real images loss weight will be 1 - fake_loss_weight
         parser.add_argument('--fake_loss_weight', type=float,  default=0.5,
@@ -55,8 +53,8 @@ class PostGanModel(BaseModel):
             print("A post training discriminator already exists, a clean discriminator will not be copied")
         else:
             clean_discriminator_path = path.join(opt.checkpoints_dir,
-                                                 opt.discriminator_to_load,
-                                                 get_network_file_name(opt.discriminator_epoch, 'D'))
+                                                 opt.network_to_load,
+                                                 get_network_file_name(opt.network_load_epoch, 'D'))
             clean_discriminator_target_path = path.join(self.save_dir,
                                                         get_network_file_name('latest', 'D' + opt.model_suffix))
             print("copying clean discriminator from '{0}' to '{1}'".format(
@@ -67,8 +65,8 @@ class PostGanModel(BaseModel):
             # Use the same GAN setup (network name + epoch)
             # of the discriminator for the generator as well
             source_generator_network_path = path.join(opt.checkpoints_dir,
-                                               opt.discriminator_to_load,
-                                               get_network_file_name(opt.discriminator_epoch, 'G'))
+                                               opt.network_to_load,
+                                               get_network_file_name(opt.network_load_epoch, 'G'))
             system('copy  "{0}" "{1}"'.format(source_generator_network_path, post_train_generator_path))
         self.load_network(post_train_generator_path, self.netG)
 
@@ -95,7 +93,7 @@ class PostGanModel(BaseModel):
                 setattr(self, 'burnt_false_' + str(i), None)
                 setattr(self, 'real_false_' + str(i), None)
 
-        self.image_paths = input['path']
+        self.image_paths = input['name']
 
     def forward(self):
         assert self.burnt_false_0 is not None, "No false neighbor exist for '{0}', All true neighbor images must " \
