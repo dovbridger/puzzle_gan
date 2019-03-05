@@ -80,6 +80,10 @@ class BaseOptions():
                             help='Save only images of wrong classification during discriminator_test')
         parser.add_argument('--use_log_diff', action='store_true',
                             help='Use logarithmic conversion from discriminator probability to diff scores')
+        parser.add_argument('--flatten_threshold', type=float, default=1,
+                            help='Threshold from which to start flattening probability')
+        parser.add_argument('--flatten_power', type=float, default=1,
+                            help='Exponent to be used to flatten probability above "flatten_threshold')
         self.initialized = True
         return parser
 

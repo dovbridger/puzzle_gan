@@ -25,14 +25,17 @@ def compare_puzzle_scores(score_file):
     for pairs in scores.values():
         for pair in pairs:
             vals.append(pair)
-    direct = [x for x, y in vals if y == 'direct']
-    mean = [x for x, y in vals if y == 'mean']
-    none = [x for x, y in vals if y == 'none']
-    print(scores)
-    print("New Average: {0}".format(sum(mean) / len(mean)))
-    print("Old Average: {0}".format(sum(none) / len(none)))
-    print("New95 Average: {0}".format(sum(direct) / len(direct)))
-    plot_histograms((mean, none, direct), num_bins=10, labels=['New', 'Original', 'New95'])
+    method_names = list(set([y for x, y in vals]))
+    results = tuple([x for x, y in vals if y == name] for name in method_names)
+    for key in scores:
+        print("{0}: {1}".format(key, scores[key]))
+    for i in range(len(method_names)):
+        print("{0}: Average={1}, max={2}, min={3}".format(method_names[i],
+                                                          sum(results[i]) / len(results[i]),
+                                                          max(results[i]),
+                                                          min(results[i])))
+    title = 'Puzzle Score Histogram Comparison'
+    plot_histograms(results, num_bins=10, labels=method_names, titles=[title])
 
 
 def calc_diff():

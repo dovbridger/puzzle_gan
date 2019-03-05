@@ -35,7 +35,9 @@ class ConfidenceVisualizerDataset(VirtualPuzzleDataset):
             diff_matrix = load_diff_matrix_cnn_from_probability(puzzle_name,
                                                                 model_name=None,
                                                                 file_name=probability_matrix_file,
-                                                                use_log=self.opt.use_log_diff)
+                                                                use_log=self.opt.use_log_diff,
+                                                                flatten_params=(self.opt.flatten_threshold,
+                                                                                self.opt.flatten_power))
 
             image_name = get_full_puzzle_name_from_characteristics(puzzle_name, part_size=self.opt.part_size)
             metadata = self.get_image_metadata(image_name)
