@@ -3,11 +3,7 @@ from options.test_options import TestOptions
 from data.virtual_puzzle_dataset import VirtualPuzzleDataset
 from models import create_model
 from utils.plot_utils import plot_histograms
-from puzzle.java_utils import create_diff_matrix3d_with_model_evaluations,\
-    create_probability_matrix3d_with_model_evaluations, parse_java_scores
-
-NUM_LOSS_DIGITS = 3
-
+from puzzle.java_utils import create_probability_matrix3d_with_model_evaluations, parse_java_scores
 
 def create_diff_matrix_for_puzzle(puzzle_name, opt):
     print("doint puzzle " + puzzle_name)

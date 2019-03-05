@@ -65,7 +65,7 @@ class PuzzleGanModel(BaseModel):
         self.real = input['real'].to(self.device)
         self.burnt = input['burnt'].to(self.device)
         self.image_paths = input['name']
-        assert input['label'], "PuzzleGanModel got a 'False' label, something is wrong"
+        assert all(input['label'].tolist()), "PuzzleGanModel got a 'False (0)' label, something is wrong"
 
     def forward(self):
         self.fake = self.netG(self.burnt)
