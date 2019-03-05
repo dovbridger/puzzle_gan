@@ -26,11 +26,13 @@ def compare_puzzle_scores(score_file):
         for pair in pairs:
             vals.append(pair)
     direct = [x for x, y in vals if y == 'direct']
+    mean = [x for x, y in vals if y == 'mean']
     none = [x for x, y in vals if y == 'none']
     print(scores)
-    print("New Average: {0}".format(sum(direct) / len(direct)))
+    print("New Average: {0}".format(sum(mean) / len(mean)))
     print("Old Average: {0}".format(sum(none) / len(none)))
-    plot_histograms((direct, none), num_bins=10, labels=['New', 'Original'])
+    print("New95 Average: {0}".format(sum(direct) / len(direct)))
+    plot_histograms((mean, none, direct), num_bins=10, labels=['New', 'Original', 'New95'])
 
 
 def calc_diff():

@@ -4,7 +4,7 @@ from data.virtual_puzzle_dataset import VirtualPuzzleDataset
 from puzzle.java_utils import PROBABILITY_MATRIX_FOLDER, resolve_orientation, DIRECTION_NAMES,\
     load_diff_matrix_cnn_from_probability
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, set_orientation_in_name
-from models.calc_diff_model import CALC_DIFF_MODEL_NAME
+from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
 from puzzle.scoring_statistics import get_top_false_confidence_score_debug_info
 from globals import HORIZONTAL, VERTICAL, NUM_DECIMAL_DIGITS
 
@@ -28,6 +28,7 @@ class ConfidenceVisualizerDataset(VirtualPuzzleDataset):
         self.visualization_keys = self._get_visualization_keys()
 
     def _get_visualization_keys(self):
+        result = []
         for file in self._get_diff_matrix_files():
             puzzle_name, _ = os.path.splitext(file.split('-')[-1])
             probability_matrix_file = os.path.join(self.opt.probability_matrix_folder, file)
@@ -44,13 +45,13 @@ class ConfidenceVisualizerDataset(VirtualPuzzleDataset):
                                                           num_y_parts=metadata.num_y_parts,
                                                           num_results=self.opt.num_results)
 
-            top_false_confidence_score_info = [(score, (image_name, direction, part1, part2s)) for
+            result += [(score, (image_name, direction, part1, part2s)) for
             score, (direction, part1, part2s) in top_false_confidence_score_info]
-        return sorted(top_false_confidence_score_info, reverse=True)
+        return sorted(result, reverse=True)
 
     def _get_diff_matrix_files(self):
         wanted_files = [file for file in os.listdir(self.opt.probability_matrix_folder) if
-                        CALC_DIFF_MODEL_NAME + "_" + self.opt.container_model + '-' in file]
+                        CALC_PROBABILITY_MODEL_NAME + "_" + self.opt.container_model + '-' in file]
         if self.opt.puzzle_name != '':
             wanted_files = [file for file in wanted_files if file.endswith('-' + self.opt.puzzle_name + '.json')]
         assert len(wanted_files) > 0, "No appropriate diff matrix file was found"

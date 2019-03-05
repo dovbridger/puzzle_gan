@@ -6,6 +6,7 @@ from utils.network_utils import get_network_file_name, get_discriminator_input
 from torch import Tensor, unsqueeze
 
 CALC_DIFF_MODEL_NAME = 'CalcDiffModel'
+CALC_PROBABILITY_MODEL_NAME = 'CalcProbabilityModel'
 
 class CalcDiffModel(BaseModel):
 

@@ -1,12 +1,12 @@
 import numpy as np
 from os import path
 from puzzle.java_utils import get_ordered_neighbors, correct_invalid_values_in_matrix3d, INVALID_NEIGHBOR_VAL,\
-    get_java_diff_file, parse_3d_numpy_array_from_json, calc_confidence, load_diff_matrix_cnn,\
+    get_java_diff_file, parse_3d_numpy_array_from_json, calc_confidence, load_diff_matrix_cnn, USE_LOG_DIFF,\
     load_diff_matrix_cnn_from_probability
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, read_metadata
 from utils.plot_utils import plot_y, plot_bars, plot_images
 from globals import TEST_DATA_PATH, FIGURES_FOLDER, PART_SIZE
-from data.virtual_puzzle_dataset import VirtualPuzzleDataset
+from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
 from argparse import Namespace
 
 ORIGINAL_DIFF_MATRIX_NAME = 'Original'
@@ -126,7 +126,7 @@ def count_best_buddies(diff_matrix3d, num_x_parts, num_y_parts):
     return np.array((true_best_buddies, false_best_buddies))
 
 
-def _load_diff_matricies_for_comparison(puzzle_name, model_names, use_log=False):
+def _load_diff_matricies_for_comparison(puzzle_name, model_names, use_log):
     full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name, orientation='h')
     metadata = read_metadata(path.join(TEST_DATA_PATH, full_puzzle_name))
     diff_matricies = []
@@ -137,7 +137,7 @@ def _load_diff_matricies_for_comparison(puzzle_name, model_names, use_log=False)
             java_diff_file_perfect = get_java_diff_file(full_puzzle_name, burn_extent='0')
             diff_matrix = parse_3d_numpy_array_from_json(java_diff_file_perfect)
         else:
-            if model_name.endswith('p'):
+            if CALC_PROBABILITY_MODEL_NAME in model_name:
                 diff_matrix = load_diff_matrix_cnn_from_probability(puzzle_name, model_name, use_log=use_log)
             else:
                 diff_matrix = load_diff_matrix_cnn(puzzle_name, model_name)
@@ -161,7 +161,7 @@ def _get_conf_scores(diff_matrix, num_x_parts, num_y_parts):
     return scores
 
 
-def run_diff_score_comparison(puzzle_name, correction_method='none', model_names=DATA_LABELS, use_log_diff=False):
+def run_diff_score_comparison(puzzle_name, correction_method='none', model_names=DATA_LABELS, use_log_diff=USE_LOG_DIFF):
     diff_matrices, metadata = _load_diff_matricies_for_comparison(puzzle_name, model_names, use_log=use_log_diff)
     # Correct the cnn diff matrix with the original diff matrix
     for i in range(len(model_names)):
@@ -243,12 +243,14 @@ def compare_best_buddies(diff_matrices, num_x_parts, num_y_parts, puzzle_descrip
     return data_to_plot
 
 
-def combine_all_diff_scores(model_names, correction_method='direct', indexes=range(1, 21)):
+def combine_all_diff_scores(model_names, correction_method='none', indexes=range(1, 21), use_log_diff=USE_LOG_DIFF):
     puzzle_names = [str(x) + 'b' for x in indexes]
     all_scores = {'ranks': [], 'buddies': [], 'confidence': []}
     for puzzle_name in puzzle_names:
         print("Collecting scores for puzzle " + puzzle_name)
-        current_scores = run_diff_score_comparison(puzzle_name, correction_method, model_names=model_names)
+        current_scores = run_diff_score_comparison(puzzle_name, correction_method,
+                                                   model_names=model_names,
+                                                   use_log_diff=use_log_diff)
         for key in current_scores:
             all_scores[key].append(current_scores[key])
     print("Collected all scores")
