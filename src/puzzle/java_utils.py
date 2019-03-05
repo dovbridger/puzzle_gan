@@ -2,6 +2,7 @@ import os
 import numpy as np
 import json
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, read_metadata, get_full_pair_example_name
+from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
 from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, INPUT_IMAGE_TYPE, ROOT_OF_MODEL_DATA, TEST_DATA_PATH,\
     PART_SIZE
 
@@ -15,6 +16,11 @@ INVALID_NEIGHBOR_VAL = -1
 
 DIFF_MATRIX_CNN_FOLDER = os.path.join(ROOT_OF_MODEL_DATA, 'diff_matrix_cnn')
 PROBABILITY_MATRIX_FOLDER = os.path.join(ROOT_OF_MODEL_DATA, 'probability_matrix')
+
+USE_LOG_DIFF = True
+FLATTEN_PROBABILITY_THRESHOLD = 0.80
+FLATTEN_PROBABILITY_POWER = 15
+USE_FLATTEN = (FLATTEN_PROBABILITY_THRESHOLD, FLATTEN_PROBABILITY_POWER)
 
 DIRECTION_NAMES = ['UP', 'DOWN', 'LEFT', 'RIGHT']
 
@@ -255,15 +261,13 @@ def assign_diff_values_by_original_rank(num_values, lower_bound=None, upper_boun
     return result
 
 
-def save_diff_matrix_cnn_for_java(puzzle_names, model_name, correction_method='direct', burn_extent=BURN_EXTENT):
+def save_diff_matrix_cnn_for_java(puzzle_names, model_name, additional_params='0', burn_extent=BURN_EXTENT):
     for puzzle_name in puzzle_names:
         diff_matrix_cnn = load_diff_matrix_cnn(puzzle_name, model_name)
         full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name)
         original_java_diff_matrix_file = get_java_diff_file(full_puzzle_name, burn_extent=burn_extent)
-        diff_matrix_original = parse_3d_numpy_array_from_json(original_java_diff_matrix_file)
-        correct_invalid_values_in_matrix3d(diff_matrix_cnn, diff_matrix_original, method=correction_method)
-        modified_java_diff_matrix_file = original_java_diff_matrix_file[:-4] +\
-                                         JAVA_MODIFIED_DIFF_MATRIX_EXTENSION + "_" + correction_method +\
+        modified_java_diff_matrix_file = original_java_diff_matrix_file[:-4] + \
+                                         JAVA_MODIFIED_DIFF_MATRIX_EXTENSION + "_" + model_name + "_" + additional_params +\
                                          original_java_diff_matrix_file[-4:]
         save_3d_numpy_array_to_json(diff_matrix_cnn, modified_java_diff_matrix_file)
 
@@ -351,7 +355,12 @@ def get_probability_matrix_file_name(puzzle_name, model_name):
 def load_diff_matrix_cnn(puzzle_name, model_name, model=None, file_name=None):
     try:
         if file_name is None:
-            file_name = get_diff_matrix_cnn_file_name(puzzle_name, model_name)
+            if CALC_PROBABILITY_MODEL_NAME in model_name:
+                print("'load_diff_matrix_cnn' called with probability model, diverting...")
+                return load_diff_matrix_cnn_from_probability(puzzle_name, model_name, file_name)
+            else:
+                file_name = get_diff_matrix_cnn_file_name(puzzle_name, model_name)
+        print("Loading diff matrix from file=%s" % file_name)
         with open(file_name, 'r') as f:
             diff_matrix_cnn = np.array(json.load(f))
     except Exception as e:
@@ -367,12 +376,14 @@ def load_diff_matrix_cnn(puzzle_name, model_name, model=None, file_name=None):
     return diff_matrix_cnn
 
 
-def load_diff_matrix_cnn_from_probability(puzzle_name, model_name, file_name=None, use_log=False):
+def load_diff_matrix_cnn_from_probability(puzzle_name, model_name, file_name=None, use_log=USE_LOG_DIFF,
+                                          flatten_params=USE_FLATTEN):
     if file_name is None:
         file_name = get_probability_matrix_file_name(puzzle_name, model_name)
+    print("Loading diff matrix from probability file=%s" % file_name)
     with open(file_name, 'r') as f:
         probability_matrix = np.array(json.load(f))
-    return convert_probability_matrix_to_diff(probability_matrix, use_log)
+    return convert_probability_matrix_to_diff(probability_matrix, use_log, flatten_params)
 
 
 def create_diff_matrix3d_with_model_evaluations(puzzle_name, part_size, model, dataset):
@@ -431,14 +442,28 @@ def create_probability_matrix3d_with_model_evaluations(puzzle_name, part_size, m
     return probability_matrix3d
 
 
-def convert_probability_matrix_to_diff(probability_matrix3d, use_log):
-
+def convert_probability_matrix_to_diff(probability_matrix3d, use_log, flatten_params):
+    if flatten_params and flatten_params[0] != 1 and flatten_params[1] != 1:
+        print("Flattening probability with params: Threshold-{0} power-{1}".format(flatten_params[0],
+                                                                                   flatten_params[1]))
+        probability_matrix3d = np.where(probability_matrix3d > FLATTEN_PROBABILITY_THRESHOLD,
+                                        flatten(probability_matrix3d, flatten_params[0], flatten_params[1]),
+                                        probability_matrix3d)
     if use_log:
+        print("Using log diff")
         diff_matrix3d = np.where(probability_matrix3d == 0, MAX_FLOAT, -np.log(probability_matrix3d))
     else:
+        print("using regular diff")
         min_prediction = float(1) / MAX_FLOAT
         diff_matrix3d = np.where(probability_matrix3d <= min_prediction,
                                  MAX_FLOAT,
                                  (float(1) / probability_matrix3d) - 1)
     return diff_matrix3d
 
+
+def flatten(x, threshold, power):
+    assert threshold > 0, "threshold must be positive"
+    delta = 1 - threshold
+    relative_location = (x - threshold) / delta
+    flattened_relative_location = relative_location**power
+    return threshold + flattened_relative_location * delta

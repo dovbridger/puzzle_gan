@@ -5,7 +5,6 @@ from models import create_model
 from utils.visualizer import save_images, Visualizer
 from utils import html
 from utils.run_utils import adjust_image_width_for_vertical_image_in_webpage
-from globals import NUM_DECIMAL_DIGITS
 
 if __name__ == '__main__':
     opt = TestOptions().parse()
@@ -27,10 +26,11 @@ if __name__ == '__main__':
         model.test()
         model.rotate_if_vertical()
         visuals = model.get_current_visuals()
+        color = ['black', 'green', 'green'] if data['text'][-1] == data['text'][-2] else ['black', 'red', 'green']
         image_text = {model.visual_names[i]: ("{0}_{1}, diff={2}".format(data['text'][i][0].item(),
                                                                    data['text'][i][1].item(),
                                                                    data['text'][i][2].item()),
-                                              'black') for i in range(data['size'])}
+                                              color[i]) for i in range(data['size'])}
         img_path = model.get_image_paths()
         width = adjust_image_width_for_vertical_image_in_webpage(img_path[0], opt)
         print('processing (%04d)-th image... %s' % (i, img_path))
