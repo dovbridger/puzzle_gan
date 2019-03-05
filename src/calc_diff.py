@@ -3,11 +3,7 @@ from options.test_options import TestOptions
 from data.virtual_puzzle_dataset import VirtualPuzzleDataset
 from models import create_model
 from utils.plot_utils import plot_histograms
-from puzzle.java_utils import create_diff_matrix3d_with_model_evaluations,\
-    create_probability_matrix3d_with_model_evaluations, parse_java_scores
-
-NUM_LOSS_DIGITS = 3
-
+from puzzle.java_utils import create_probability_matrix3d_with_model_evaluations, parse_java_scores
 
 def create_diff_matrix_for_puzzle(puzzle_name, opt):
     print("doint puzzle " + puzzle_name)
@@ -25,12 +21,17 @@ def compare_puzzle_scores(score_file):
     for pairs in scores.values():
         for pair in pairs:
             vals.append(pair)
-    direct = [x for x, y in vals if y == 'direct']
-    none = [x for x, y in vals if y == 'none']
-    print(scores)
-    print("New Average: {0}".format(sum(direct) / len(direct)))
-    print("Old Average: {0}".format(sum(none) / len(none)))
-    plot_histograms((direct, none), num_bins=10, labels=['New', 'Original'])
+    method_names = list(set([y for x, y in vals]))
+    results = tuple([x for x, y in vals if y == name] for name in method_names)
+    for key in scores:
+        print("{0}: {1}".format(key, scores[key]))
+    for i in range(len(method_names)):
+        print("{0}: Average={1}, max={2}, min={3}".format(method_names[i],
+                                                          sum(results[i]) / len(results[i]),
+                                                          max(results[i]),
+                                                          min(results[i])))
+    title = 'Puzzle Score Histogram Comparison'
+    plot_histograms(results, num_bins=10, labels=method_names, titles=[title])
 
 
 def calc_diff():

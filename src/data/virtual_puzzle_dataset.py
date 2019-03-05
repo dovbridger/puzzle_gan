@@ -173,9 +173,9 @@ class VirtualPuzzleDataset(BaseDataset):
         part2 = part1 + 1
         if relative_index % (self.opt.num_false_examples + 1) == 0:
             # A true example
-            label = True
+            label = 1#torch.tensor(1)
         else:
-            label = False
+            label = 0#torch.tensor(0)
             while (part2 == part1 + 1 or part2 == part1):
                 # Randomly select a part until it is valid
                 part2 = choice(parts_range)

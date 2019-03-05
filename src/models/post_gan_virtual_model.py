@@ -87,13 +87,15 @@ class PostGanVirtualModel(BaseModel):
         # Real
         discriminator_real_input = get_discriminator_input(self.opt, self.burnt, self.real)
         prediction_real = self.netD(discriminator_real_input)
-        self.loss_D_real = self.criterionGAN(prediction_real, self.label)
+        # TODO: Check if self.label == 1 is equivalent to self.label being True
+        self.loss_D_real = self.criterionGAN(prediction_real, self.label == 1)
 
         # Fake
         discriminator_fake_input = get_discriminator_input(self.opt, self.burnt, self.fake)
         # stop backprop to the generator by detaching 'discriminator_fake_input'
         prediction_fake = self.netD(discriminator_fake_input.detach())
-        self.loss_D_fake = self.criterionGAN(prediction_fake, self.label)
+        # TODO: Check if self.label == 1 is equivalent to self.label being True
+        self.loss_D_fake = self.criterionGAN(prediction_fake, self.label == 1)
 
         # Combined loss
         self.loss_D = self.loss_D_real * (1 - self.opt.fake_loss_weight) + self.loss_D_fake * self.opt.fake_loss_weight
@@ -108,6 +110,6 @@ class PostGanVirtualModel(BaseModel):
 
     def get_prediction(self):
         num_examples = self.probability.shape[0]
-        return self.probability.reshape(num_examples, -1).mean(dim=1), self.label
+        return self.probability.reshape(num_examples, -1).mean(dim=1), self.label == 1
 
 
