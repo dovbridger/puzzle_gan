@@ -1,2 +1,0 @@
-python test.py --phase true --model inpainting --how_many 100000 --name inpaint_train --burn_extent 2 --dataroot C:\SHARE\checkouts\puzzle_gan_data\datasets\puzzle_parts\train --generator_window 4 --save_images_frequency 1 --which_epoch 32
-python test.py --phase false --model inpainting --how_many 100000 --name inpaint_train --burn_extent 2 --dataroot C:\SHARE\checkouts\puzzle_gan_data\datasets\puzzle_parts\train --generator_window 4 --save_images_frequency 1 --which_epoch 32
