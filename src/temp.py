@@ -10,17 +10,22 @@ def test_compare_diff_scores(models_to_compare, indexes=range(1, 21), correction
                                   use_log_diff=False,
                                   flatten_params=None)
 
+def save_diff_matrix_by_models(model_names):
+    from puzzle.java_utils import save_diff_matrix_cnn_for_java
+    for model_name in model_names:
+        save_diff_matrix_cnn_for_java([str(x) + 'b' for x in range(1, 21)], model_name,
+                                      additional_params='0',
+                                      burn_extent='4')
 
 def main():
     models_to_compare = ['Original',
                          'Perfect',
-                         'CalcDiffModel_g44_d40_b4_virtual3',
-                         'CalcProbabilityModel_g44_d40_b4_virtual']
-
+                         'CalcProbabilityModel_g36_d30_b4_v',
+                         'CalcProbabilityModel_g44_d40_b4_v']
     #test_compare_diff_scores(models_to_compare, [1,2,3], use_log_diff=True)
-    #combine_all_diff_scores(model_names=models_to_compare, use_log_diff=True)
-    from puzzle.java_utils import save_diff_matrix_cnn_for_java
-    save_diff_matrix_cnn_for_java([str(x) + 'b' for x in range(1, 21)], 'CalcProbabilityModel_g44_d40_b4_virtual', burn_extent='4')
+    #combine_all_diff_scores(model_names=models_to_compare, use_log_diff=True, flatten_params=(0.7, 20))
+    save_diff_matrix_by_models(models_to_compare[2:3])
+
 
 if __name__ == '__main__':
     main()
