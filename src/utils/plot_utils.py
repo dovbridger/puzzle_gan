@@ -91,6 +91,7 @@ def general_plot(data, plot_function, axes_configurator, output_file_name=None, 
             file_name, extension = os.path.splitext(output_file_name)
             output_file_name = file_name + "_new." + extension
         plt.savefig(output_file_name)
+        plt.close()
     else:
         plt.show()
 

@@ -76,7 +76,6 @@ class VirtualPuzzleDataset(BaseDataset):
             current_image.num_examples_accumulated = num_examples_accumulated
             self.images_index_dict[current_image.name_horizontal] = len(self.images)
             self.images.append(current_image)
-
     def __getitem__(self, index):
         example = self.get_pair_example_by_index(index)
         example['burnt'] = self.burn_image(example['real'])
@@ -173,9 +172,9 @@ class VirtualPuzzleDataset(BaseDataset):
         part2 = part1 + 1
         if relative_index % (self.opt.num_false_examples + 1) == 0:
             # A true example
-            label = 1#torch.tensor(1)
+            label = 1
         else:
-            label = 0#torch.tensor(0)
+            label = 0
             while (part2 == part1 + 1 or part2 == part1):
                 # Randomly select a part until it is valid
                 part2 = choice(parts_range)
