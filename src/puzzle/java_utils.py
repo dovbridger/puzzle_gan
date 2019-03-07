@@ -4,7 +4,7 @@ import json
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, read_metadata, get_full_pair_example_name
 from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
 from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, INPUT_IMAGE_TYPE, ROOT_OF_MODEL_DATA, TEST_DATA_PATH,\
-    PART_SIZE
+    PART_SIZE, HORIZONTAL
 
 JAVA_DATA_FOLDER = r'C:\Users\dov\workspace\Puzzle Resources\Data\Init'
 JAVA_DIFF_MATRIX_FILE_NAME = "diff_matrix.txt"
@@ -264,7 +264,7 @@ def assign_diff_values_by_original_rank(num_values, lower_bound=None, upper_boun
 def save_diff_matrix_cnn_for_java(puzzle_names, model_name, additional_params='0', burn_extent=BURN_EXTENT):
     for puzzle_name in puzzle_names:
         diff_matrix_cnn = load_diff_matrix_cnn(puzzle_name, model_name)
-        full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name)
+        full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name=puzzle_name, orientation=HORIZONTAL)
         original_java_diff_matrix_file = get_java_diff_file(full_puzzle_name, burn_extent=burn_extent)
         modified_java_diff_matrix_file = original_java_diff_matrix_file[:-4] + \
                                          JAVA_MODIFIED_DIFF_MATRIX_EXTENSION + "_" + model_name + "_" + additional_params +\
@@ -443,7 +443,7 @@ def create_probability_matrix3d_with_model_evaluations(puzzle_name, part_size, m
 
 
 def convert_probability_matrix_to_diff(probability_matrix3d, use_log, flatten_params):
-    if flatten_params and flatten_params[0] != 1 and flatten_params[1] != 1:
+    if flatten_params and flatten_params != '' and flatten_params[0] != 1 and flatten_params[1] != 1:
         print("Flattening probability with params: Threshold-{0} power-{1}".format(flatten_params[0],
                                                                                    flatten_params[1]))
         probability_matrix3d = np.where(probability_matrix3d > FLATTEN_PROBABILITY_THRESHOLD,

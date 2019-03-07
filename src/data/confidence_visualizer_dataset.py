@@ -39,7 +39,7 @@ class ConfidenceVisualizerDataset(VirtualPuzzleDataset):
                                                                 flatten_params=(self.opt.flatten_threshold,
                                                                                 self.opt.flatten_power))
 
-            image_name = get_full_puzzle_name_from_characteristics(puzzle_name, part_size=self.opt.part_size)
+            image_name = get_full_puzzle_name_from_characteristics(puzzle_name=puzzle_name, orientation=HORIZONTAL)
             metadata = self.get_image_metadata(image_name)
             top_false_confidence_score_info = \
                 get_top_false_confidence_score_debug_info(diff_matrix,

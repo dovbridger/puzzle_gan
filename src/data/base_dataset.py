@@ -55,8 +55,10 @@ def get_transform(opt):
         transform_list.append(transforms.RandomCrop(opt.fineSize))
     elif opt.resize_or_crop == 'none':
         pass
-        #transform_list.append(transforms.Lambda(
-         #   lambda img: __adjust(img)))
+
+    elif opt.resize_or_crop == 'crop_to_part_size':
+        transform_list.append(transforms.Lambda(
+            lambda image: __inffer_crop_transform_from_part_size(image, opt.part_size)))
     else:
         raise ValueError('--resize_or_crop %s is not a valid option.' % opt.resize_or_crop)
 
@@ -88,6 +90,18 @@ def __adjust(img):
         __print_size_warning(ow, oh, w, h)
 
     return img.resize((w, h), Image.BICUBIC)
+
+
+def __inffer_crop_transform_from_part_size(image, part_size):
+    width, height = image.size
+    new_width = part_size * int(width / part_size)
+    new_height = part_size * int(height / part_size)
+    if (new_height, new_width) == (height, width):
+        return image
+    else:
+        print("Image will be cropped from {0}x{1} to {2}x{3}".format(height, width, new_height, new_width))
+        return transforms.functional.crop(image, 0, 0, new_height, new_width)
+
 
 
 def __scale_width(img, target_width):
