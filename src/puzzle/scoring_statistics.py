@@ -4,10 +4,9 @@ from puzzle.java_utils import get_ordered_neighbors, correct_invalid_values_in_m
     get_java_diff_file, parse_3d_numpy_array_from_json, calc_confidence, load_diff_matrix_cnn, USE_LOG_DIFF,\
     load_diff_matrix_cnn_from_probability, USE_FLATTEN
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, read_metadata
-from utils.plot_utils import plot_y, plot_bars, plot_images
-from globals import TEST_DATA_PATH, FIGURES_FOLDER, PART_SIZE
+from utils.plot_utils import plot_y, plot_bars, plot_histograms
+from globals import TEST_DATA_PATH, FIGURES_FOLDER, HORIZONTAL
 from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
-from argparse import Namespace
 
 ORIGINAL_DIFF_MATRIX_NAME = 'Original'
 PERFECT_DIFF_MATRIX_NAME = 'Perfect'
@@ -38,6 +37,10 @@ def get_true_neighbor(part, direction, num_x_parts, num_y_parts):
             return part + 1
 
     return INVALID_NEIGHBOR_VAL
+
+
+def determine_label(direction, part1, part2, num_x_parts, num_y_parts):
+    return part2 == get_true_neighbor(part1, direction, num_x_parts, num_y_parts)
 
 
 def get_rank_statistics(diff_matrix3d, num_x_parts, num_y_parts):
@@ -127,10 +130,12 @@ def count_best_buddies(diff_matrix3d, num_x_parts, num_y_parts):
 
 
 def _load_diff_matricies_for_comparison(puzzle_name, model_names, use_log, flatten_params):
-    full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name, orientation='h')
+    if not isinstance(flatten_params, list):
+        flatten_params = [flatten_params for name in model_names]
+    full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name, part_size=64, orientation=HORIZONTAL)
     metadata = read_metadata(path.join(TEST_DATA_PATH, full_puzzle_name))
     diff_matricies = []
-    for model_name in model_names:
+    for i, model_name in enumerate(model_names):
         if model_name == ORIGINAL_DIFF_MATRIX_NAME:
             diff_matrix = parse_3d_numpy_array_from_json(get_java_diff_file(full_puzzle_name))
         elif model_name == PERFECT_DIFF_MATRIX_NAME:
@@ -140,7 +145,7 @@ def _load_diff_matricies_for_comparison(puzzle_name, model_names, use_log, flatt
             if CALC_PROBABILITY_MODEL_NAME in model_name:
                 diff_matrix = load_diff_matrix_cnn_from_probability(puzzle_name, model_name,
                                                                     use_log=use_log,
-                                                                    flatten_params=flatten_params)
+                                                                    flatten_params=flatten_params[i])
             else:
                 diff_matrix = load_diff_matrix_cnn(puzzle_name, model_name)
         diff_matricies.append(diff_matrix)
@@ -228,9 +233,9 @@ def compare_confidence_scores(diff_matrices, num_x_parts, num_y_parts, puzzle_de
 
     # Zip diff_matrix1 true with diff_matrix2 true, and diff_matrix1 false with diff_matrix2 false
     data_to_plot = list(zip(*data_to_plot))
-    plot_y(data_to_plot,
-           sort=True, colors=COLORS, labels=diff_matrix_names,
-           titles=plot_titles, output_file_name=get_figure_name(puzzle_description, 'confidence_scores'))
+    plot_histograms(data_to_plot,
+                    num_bins=10, colors=COLORS, labels=diff_matrix_names,
+                    titles=plot_titles, output_file_name=get_figure_name(puzzle_description, 'confidence_scores'))
     return data_to_plot
 
 
@@ -274,16 +279,19 @@ def combine_all_diff_scores(model_names, correction_method='none', indexes=range
                 score_sums[k] = score_sums[k] + score
         confidence[i] = tuple(np.array(score_sum).flatten() for score_sum in score_sums)
     puzzle_description = "All_puzzles-" + correction_method
+    plot_labels = [model_name + str(params) for model_name, params in zip(model_names, flatten_params)]
+    print(plot_labels)
     plot_y(ranks,
-           sort=True, colors=COLORS, labels=model_names,
+           sort=True, colors=COLORS, labels=plot_labels,
            titles=['Diff score ranking of the true neighbors (sorted)'],
            output_file_name=get_figure_name(puzzle_description, 'ranks'))
-    plot_bars(buddies, labels=model_names, colors=COLORS,
+    plot_bars(buddies, labels=plot_labels, colors=COLORS,
               titles=['Total Best Buddies Count'], tick_labels=tick_labels,
               output_file_name=get_figure_name(puzzle_description, 'best_buddies'))
-    plot_y(confidence,
-           sort=True, colors=COLORS, labels=model_names,
-           titles=['Top True Scores', 'Top False scores'], output_file_name=get_figure_name(puzzle_description, 'confidence_scores'))
+    plot_histograms(confidence,
+                    num_bins=10, colors=COLORS, labels=plot_labels,
+                    titles=['Top True Scores', 'Top False scores'],
+                    output_file_name=get_figure_name(puzzle_description, 'confidence_scores'))
 
 
 def get_top_false_confidence_score_debug_info(diff_matrix, num_x_parts, num_y_parts, num_results):
@@ -291,6 +299,38 @@ def get_top_false_confidence_score_debug_info(diff_matrix, num_x_parts, num_y_pa
     false_score_identities = sorted(false_score_identities)
     false_score_identities.reverse()
     return false_score_identities[0: num_results]
+
+
+def make_true_false_score_histogram(score_matrix, num_x_parts, num_y_parts,
+                                    true_scores=[], false_scores=[]):
+    num_parts = num_x_parts * num_y_parts
+    assert score_matrix.shape == (4, num_parts, num_parts),\
+        "score matrix shape ({0})is wrong".format(score_matrix.shape)
+    for direction in range(score_matrix.shape[0]):
+        for part1 in range(score_matrix.shape[1]):
+            for part2 in range(score_matrix.shape[2]):
+                if determine_label(direction, part1, part2, num_x_parts, num_parts):
+                    true_scores.append(score_matrix[direction, part1, part2])
+                else:
+                    false_scores.append(score_matrix[direction, part1, part2])
+    return true_scores, false_scores
+
+
+def plot_true_false_score_historgrams(true_scores, false_scores, num_bins=10, exclude_threshold=None):
+    if exclude_threshold is not None:
+        true_scores = [score for score in true_scores if score < exclude_threshold['True']]
+        false_scores = [score for score in false_scores if score > exclude_threshold['False']]
+    true_scores = np.array(true_scores)
+    false_scores = np.array(false_scores)
+    for label, array in [('True', true_scores), ('False', false_scores)]:
+        stats = "Size: {1}, Average: {2}, STD: {3}".format(label,
+                                                                             len(array),
+                                                                             round(array.mean(), 3),
+                                                                             round(array.std(), 3))
+        title = label + ' Probability Histogram (exclude threshold = ' + str(exclude_threshold[label]) +')\n' + stats
+        plot_histograms([array], num_bins=num_bins,
+                        titles=[title],
+                        output_file_name=get_figure_name("", label + " probability_histogram"))
 
 
 def get_figure_name(puzzle_description, figure_type):

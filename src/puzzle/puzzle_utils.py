@@ -9,13 +9,13 @@ def get_info_from_file_name(file_name, requested_info_magic):
     for info in file_name.split(DELIMITER_MAGIC):
         if info.startswith(requested_info_magic):
             return info.split(requested_info_magic)[1]
-    raise Exception("Cannot find info with magic '" + requested_info_magic + "' in file name '" + file_name + "'")
+    return None
 
 
-def get_full_puzzle_name_from_characteristics(puzzle_name, part_size=PART_SIZE, orientation='h'):
-    return DELIMITER_MAGIC.join([NAME_MAGIC + puzzle_name,
-                                 PART_SIZE_MAGIC + str(part_size),
-                                 ORIENTATION_MAGIC + orientation])
+def get_full_puzzle_name_from_characteristics(puzzle_name, part_size=None, orientation=None):
+    assert puzzle_name is not None and puzzle_name != '', "puzzle name must be provided"
+    characteristics = [(NAME_MAGIC, puzzle_name), (PART_SIZE_MAGIC, part_size), (ORIENTATION_MAGIC, orientation)]
+    return DELIMITER_MAGIC.join([magic + str(value) for magic, value in characteristics if value is not None])
 
 
 def matches_patterns(input_string, and_pattern, or_pattern):
@@ -38,17 +38,6 @@ def read_metadata(folder, file_name=METADATA_FILE_NAME):
             key_value_pair = item.split(':')
             result[key_value_pair[0]] = key_value_pair[1]
     return result
-
-
-# Determine the label according the the name of the file and the number of columns in the puzzle (num_x_parts)
-def determine_label(file_name, num_x_parts):
-    part1, _, part2 = file_name.split('.')[0].split('_')
-    part1, part2 = int(part1), int(part2)
-    if part1 != part2 - 1:
-        # parts are not adjacent
-        return False
-    # Is part1 not the last in the row
-    return part1 % num_x_parts != 0
 
 
 def get_full_pair_example_name(full_puzzle_name, part1, part2):

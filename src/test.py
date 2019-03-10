@@ -13,7 +13,7 @@ from globals import NUM_DECIMAL_DIGITS
 
 if __name__ == '__main__':
     opt = TestOptions().parse()
-    opt.nThreads = 1   # test code only supports nThreads = 1
+    opt.nThreads = 0
     opt.batchSize = 1  # test code only supports batchSize = 1
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()

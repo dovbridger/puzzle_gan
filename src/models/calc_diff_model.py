@@ -11,7 +11,7 @@ CALC_PROBABILITY_MODEL_NAME = 'CalcProbabilityModel'
 class CalcDiffModel(BaseModel):
 
     def name(self):
-        return CALC_DIFF_MODEL_NAME
+        return CALC_PROBABILITY_MODEL_NAME
 
     @staticmethod
     def modify_commandline_options(parser, is_train=True):

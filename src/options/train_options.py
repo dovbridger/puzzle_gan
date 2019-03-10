@@ -12,8 +12,8 @@ class TrainOptions(BaseOptions):
         only_crop = False
         parser = BaseOptions.initialize(self, parser)
         parser.add_argument('--display_freq', type=int, default=2000, help='frequency of showing training results on screen')
-        parser.add_argument('--update_html_freq', type=int, default=1000, help='frequency of saving training results to html')
-        parser.add_argument('--print_freq', type=int, default=1000, help='frequency of showing training results on console')
+        parser.add_argument('--update_html_freq', type=int, default=20000, help='frequency of saving training results to html')
+        parser.add_argument('--print_freq', type=int, default=2000, help='frequency of showing training results on console')
         parser.add_argument('--save_latest_freq', type=int, default=20000, help='frequency of saving the latest results')
         parser.add_argument('--save_epoch_freq', type=int, default=5, help='frequency of saving checkpoints at the end of epochs')
         parser.add_argument('--continue_train', action='store_true', help='continue training: load the latest model')
