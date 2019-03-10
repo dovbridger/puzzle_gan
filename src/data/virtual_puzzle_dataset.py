@@ -4,11 +4,10 @@ from data.base_dataset import BaseDataset, get_transform
 from data.image_folder import make_dataset
 from PIL import Image
 from utils.util import tensor2im, save_image
-from torchvision import transforms
 from argparse import Namespace
 from bisect import bisect
 from random import choice
-from globals import PART_SIZE_MAGIC, ORIENTATION_MAGIC, HORIZONTAL, VERTICAL, NAME_MAGIC
+from globals import ORIENTATION_MAGIC, HORIZONTAL, VERTICAL, NAME_MAGIC
 from puzzle.puzzle_utils import get_full_pair_example_name, get_info_from_file_name, set_orientation_in_name
 
 
@@ -23,7 +22,8 @@ class VirtualPuzzleDataset(BaseDataset):
                                  'must be a multiple of "part_size"')
         parser.add_argument('--puzzle_name', type=str, default='',
                             help="Specify a single puzzle name if you want to it to be the only one in the dataset")
-        parser.set_defaults(resize_or_crop='none')
+        parser.set_defaults(resize_or_crop='crop_to_part_size')
+        parser.set_defaults(nThreads=0)
         return parser
 
     def initialize(self, opt):
@@ -37,15 +37,12 @@ class VirtualPuzzleDataset(BaseDataset):
 
         # Paths of the full puzzle images
         self.paths = sorted(make_dataset(self.phase_folder))
-        self.transform = transforms.Compose([transforms.ToTensor(),
-                         transforms.Normalize((0.5, 0.5, 0.5),
-                                              (0.5, 0.5, 0.5))])
+        self.transform = get_transform(opt)
         self.load_base_images()
 
     def load_base_images(self):
         num_examples_accumulated = 0
-        for path in [p for p in self.paths if PART_SIZE_MAGIC + str(self.opt.part_size) in p and
-                                              ORIENTATION_MAGIC + HORIZONTAL in p and
+        for path in [p for p in self.paths if ORIENTATION_MAGIC + HORIZONTAL in p and
                                               NAME_MAGIC + str(self.opt.puzzle_name) in p]:
             current_image = Namespace()
             current_image.image_dir = os.path.dirname(path)
@@ -55,14 +52,12 @@ class VirtualPuzzleDataset(BaseDataset):
             current_image.horizontal = self.get_real_image(os.path.join(
                 current_image.image_dir,
                 current_image.name_horizontal + current_image.image_extension))
-
-            current_image.vertical = self.get_real_image(os.path.join(
-                current_image.image_dir,
-                current_image.name_vertical + current_image.image_extension))
-
+            current_image.vertical = current_image.horizontal.transpose(2, 1).flip(1)
             _, height, width = current_image.horizontal.shape
+
             assert height % self.opt.part_size == 0 and width % self.opt.part_size == 0,\
-                "Image wasn't cropped to be a multiple of 'part_size'"
+                "Image ({0}x{1} wasn't cropped to be a multiple of 'part_size'({2})".format(height, width,
+                                                                                            self.opt.part_size)
             current_image.num_x_parts = int(width / self.opt.part_size)
             current_image.num_y_parts = int(height / self.opt.part_size)
             current_image.parts_range = range(current_image.num_x_parts * current_image.num_y_parts)
