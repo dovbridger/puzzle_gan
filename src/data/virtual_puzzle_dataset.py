@@ -52,7 +52,7 @@ class VirtualPuzzleDataset(BaseDataset):
             current_image.horizontal = self.get_real_image(os.path.join(
                 current_image.image_dir,
                 current_image.name_horizontal + current_image.image_extension))
-            current_image.vertical = current_image.horizontal.transpose(2, 1).flip(1)
+   #         current_image.vertical = current_image.horizontal.transpose(2, 1).flip(1)
             _, height, width = current_image.horizontal.shape
 
             assert height % self.opt.part_size == 0 and width % self.opt.part_size == 0,\
