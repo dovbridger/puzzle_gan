@@ -40,17 +40,6 @@ def read_metadata(folder, file_name=METADATA_FILE_NAME):
     return result
 
 
-# Determine the label according the the name of the file and the number of columns in the puzzle (num_x_parts)
-def determine_label(file_name, num_x_parts):
-    part1, _, part2 = file_name.split('.')[0].split('_')
-    part1, part2 = int(part1), int(part2)
-    if part1 != part2 - 1:
-        # parts are not adjacent
-        return False
-    # Is part1 not the last in the row
-    return part1 % num_x_parts != 0
-
-
 def get_full_pair_example_name(full_puzzle_name, part1, part2):
     return full_puzzle_name + "-" + str(part1) + "_" + str(part2)
 

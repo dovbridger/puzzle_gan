@@ -39,6 +39,10 @@ def get_true_neighbor(part, direction, num_x_parts, num_y_parts):
     return INVALID_NEIGHBOR_VAL
 
 
+def determine_label(direction, part1, part2, num_x_parts, num_y_parts):
+    return part2 == get_true_neighbor(part1, direction, num_x_parts, num_y_parts)
+
+
 def get_rank_statistics(diff_matrix3d, num_x_parts, num_y_parts):
     ranks = np.zeros((4, num_x_parts * num_y_parts), dtype='int32')
     ranks[:][:] = INVALID_NEIGHBOR_VAL
@@ -295,6 +299,38 @@ def get_top_false_confidence_score_debug_info(diff_matrix, num_x_parts, num_y_pa
     false_score_identities = sorted(false_score_identities)
     false_score_identities.reverse()
     return false_score_identities[0: num_results]
+
+
+def make_true_false_score_histogram(score_matrix, num_x_parts, num_y_parts,
+                                    true_scores=[], false_scores=[]):
+    num_parts = num_x_parts * num_y_parts
+    assert score_matrix.shape == (4, num_parts, num_parts),\
+        "score matrix shape ({0})is wrong".format(score_matrix.shape)
+    for direction in range(score_matrix.shape[0]):
+        for part1 in range(score_matrix.shape[1]):
+            for part2 in range(score_matrix.shape[2]):
+                if determine_label(direction, part1, part2, num_x_parts, num_parts):
+                    true_scores.append(score_matrix[direction, part1, part2])
+                else:
+                    false_scores.append(score_matrix[direction, part1, part2])
+    return true_scores, false_scores
+
+
+def plot_true_false_score_historgrams(true_scores, false_scores, num_bins=10, exclude_threshold=None):
+    if exclude_threshold is not None:
+        true_scores = [score for score in true_scores if score < exclude_threshold['True']]
+        false_scores = [score for score in false_scores if score > exclude_threshold['False']]
+    true_scores = np.array(true_scores)
+    false_scores = np.array(false_scores)
+    for label, array in [('True', true_scores), ('False', false_scores)]:
+        stats = "Size: {1}, Average: {2}, STD: {3}".format(label,
+                                                                             len(array),
+                                                                             round(array.mean(), 3),
+                                                                             round(array.std(), 3))
+        title = label + ' Probability Histogram (exclude threshold = ' + str(exclude_threshold[label]) +')\n' + stats
+        plot_histograms([array], num_bins=num_bins,
+                        titles=[title],
+                        output_file_name=get_figure_name("", label + " probability_histogram"))
 
 
 def get_figure_name(puzzle_description, figure_type):
