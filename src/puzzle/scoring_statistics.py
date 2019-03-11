@@ -108,25 +108,38 @@ def count_best_buddies(diff_matrix3d, num_x_parts, num_y_parts):
     :param diff_matrix3d:
     :param num_x_parts:
     :param num_y_parts:
-    :return: numpy.array([[True best buddies Horizontal , True Best Buddies Vertical]
-                          [False best buddies Horizontal , False Best Buddies Vertical]]
+    :return: numpy.array([[[True best buddies Horizontal , True Best Buddies Vertical]
+                          [False best buddies Horizontal , False Best Buddies Vertical]
+                          ],
+                          [True best neighbors Horizontal , True Best neighbors Vertical]
+                          [False best neighbors Horizontal , False Best neighbors Vertical]]
+                        ]
     Where 'True best buddies' and 'False Best Buddies' are numpy arrays containing 2 values - horizontal best buddies
     count and vertical
     '''
     num_parts = diff_matrix3d.shape[1]
     true_best_buddies = np.zeros((2,), dtype='int32')
+    true_best_neighbors = np.zeros((2,), dtype='int32')
     false_best_buddies = np.zeros((2,), dtype='int32')
+    false_best_neighbors = np.zeros((2,), dtype='int32')
     directions = [(1, 0), (3, 2)]
     for i in range(len(directions)):
         direction, reversed_direction = directions[i]
         for part in range(num_parts):
             best_neighbor = diff_matrix3d[direction][part][:].argsort()[0]
-            if part == diff_matrix3d[reversed_direction][best_neighbor][:].argsort()[0]:
-                if best_neighbor == get_true_neighbor(part, direction, num_x_parts, num_y_parts):
-                    true_best_buddies[i] = true_best_buddies[i] + 1
-                else:
-                    false_best_buddies[i] = false_best_buddies[i] + 1
-    return np.array((true_best_buddies, false_best_buddies))
+            true_neighbor = get_true_neighbor(part, direction, num_x_parts, num_y_parts)
+            best_buddies = part == diff_matrix3d[reversed_direction][best_neighbor][:].argsort()[0]
+            if best_neighbor == true_neighbor:
+                true_best_neighbors[i] += 1
+                if best_buddies:
+                    true_best_buddies[i] += 1
+            else:
+                false_best_neighbors[i] += 1
+                if best_buddies:
+                    false_best_buddies[i] += 1
+    return np.array([[true_best_buddies, false_best_buddies],
+                     [true_best_neighbors, false_best_neighbors],
+                     ])
 
 
 def _load_diff_matricies_for_comparison(puzzle_name, model_names, use_log, flatten_params):
@@ -246,7 +259,7 @@ def compare_best_buddies(diff_matrices, num_x_parts, num_y_parts, puzzle_descrip
     plot_titles = ['Total Best Buddies Count']
     tick_labels = ['True BB', 'False BB']
 
-    data_to_plot = tuple(best_buddies_count.sum(axis=1)for best_buddies_count in best_buddies_counts)
+    data_to_plot = tuple(best_buddies_count.sum(axis=2) for best_buddies_count in best_buddies_counts)
     plot_bars(data_to_plot, labels=diff_matrix_names, colors=COLORS,
               titles=plot_titles, tick_labels=tick_labels, output_file_name=get_figure_name(puzzle_description, 'best_buddies'))
     return data_to_plot
@@ -316,7 +329,7 @@ def make_true_false_score_histogram(score_matrix, num_x_parts, num_y_parts,
     return true_scores, false_scores
 
 
-def plot_true_false_score_historgrams(true_scores, false_scores, num_bins=10, exclude_threshold=None):
+def plot_true_false_score_historgrams(true_scores, false_scores, num_bins=10, exclude_threshold={'True':1,'False':0}):
     if exclude_threshold is not None:
         true_scores = [score for score in true_scores if score < exclude_threshold['True']]
         false_scores = [score for score in false_scores if score > exclude_threshold['False']]

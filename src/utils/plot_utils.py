@@ -56,7 +56,11 @@ def plot_bars(data, titles=None, colors=None, labels=None, tick_labels=None, bar
                      x_positions=None, color=None, label=None, **kwargs):
         if x_positions is None:
             x_positions = bar_width * (data_spacing * num_data_items * np.arange(len(specific_label_data)) + index)
+        if len(specific_label_data.shape) == 2:
+            specific_label_data, top_data = specific_label_data[0, :], specific_label_data[1, :]
+            axes.bar(x_positions, height=top_data, bottom=0, color=color, edgecolor=color, fill=False, width=bar_width)
         axes.bar(x_positions, height=specific_label_data, color=color, width=bar_width, label=label)
+
 
     general_plot(data, bars_on_axes, configure_axes, titles=titles,
                  labels=labels, colors=colors, tick_labels=tick_labels,

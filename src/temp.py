@@ -35,11 +35,13 @@ def plot_probability_histogram(model_name, indexes=range(1, 21)):
 
 def main():
     models_to_compare = ['Original',
-                         'CalcProbabilityModel_g40_d40_b4_v']
-    plot_probability_histogram(models_to_compare[1])
-    #test_compare_diff_scores(model_names=models_to_compare, flatten_params=['','',(0.7,10),(0.51,10)])
-    #combine_all_diff_scores(model_names=models_to_compare, use_log_diff=True, flatten_params=['','','','',''])
-    #save_diff_matrix_by_models(models_to_compare[2:3])
+                         'CalcProbabilityModel_g44_d40_b4_v',
+                         'CalcProbabilityModel_g44_d45_b4_v',
+                         'CalcProbabilityModel_g44_d50_b4_v']
+    #plot_probability_histogram(models_to_compare[3])
+    #test_compare_diff_scores(model_names=models_to_compare, indexes=[1], flatten_params=['','','',''])
+    combine_all_diff_scores(model_names=models_to_compare, use_log_diff=True, flatten_params=['','','','',''])
+    #save_diff_matrix_by_models(models_to_compare[3:4])
 
 
 if __name__ == '__main__':

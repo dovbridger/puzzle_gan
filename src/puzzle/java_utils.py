@@ -1,10 +1,10 @@
 import os
 import numpy as np
 import json
-from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, read_metadata, get_full_pair_example_name
+from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, get_info_from_file_name
 from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
 from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, INPUT_IMAGE_TYPE, ROOT_OF_MODEL_DATA, TEST_DATA_PATH,\
-    PART_SIZE, HORIZONTAL
+    PART_SIZE, HORIZONTAL, NAME_MAGIC
 
 JAVA_DATA_FOLDER = r'C:\Users\dov\workspace\Puzzle Resources\Data\Init'
 JAVA_DIFF_MATRIX_FILE_NAME = "diff_matrix.txt"
@@ -128,8 +128,8 @@ def convert_orientation_to_index(orientation):
         raise Exception("Incorrect orientation + '" + orientation + "'")
 
 
-def get_java_diff_file(full_puzzle_name, burn_extent=BURN_EXTENT):
-    puzzle_name, part_size, _ = full_puzzle_name.split("-")
+def get_java_diff_file(full_puzzle_name, burn_extent=BURN_EXTENT, part_size=PART_SIZE):
+    puzzle_name = get_info_from_file_name(full_puzzle_name, NAME_MAGIC)
     for file in [f for f in os.listdir(JAVA_DATA_FOLDER) if f.endswith(JAVA_DIFF_MATRIX_FILE_NAME)]:
         if puzzle_name in file and part_size in file and BURN_EXTENT_MAGIC+burn_extent in file:
             return os.path.join(JAVA_DATA_FOLDER, file)
