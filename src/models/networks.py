@@ -301,7 +301,7 @@ class GANLoss(nn.Module):
                 target_tensor = self.fake_label
             return target_tensor.expand_as(input)
         else:
-            return target_is_real.expand_as(input)
+            return target_is_real.view(-1, 1, 1, 1).expand_as(input)
 
     def __call__(self, input, target_is_real):
         target_tensor = self.get_target_tensor(input, target_is_real)
