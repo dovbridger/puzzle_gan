@@ -1,5 +1,5 @@
 from puzzle.puzzle_utils import get_info_from_file_name
-from globals import ORIENTATION_MAGIC, VERTICAL
+from globals import ORIENTATION_MAGIC, VERTICAL, NUM_DECIMAL_DIGITS
 
 def mixed_label_predictions(model):
     paths = model.get_image_paths()
@@ -35,3 +35,24 @@ def adjust_image_width_for_vertical_image_in_webpage(image_path, opt):
     if get_info_from_file_name(image_path, ORIENTATION_MAGIC) == VERTICAL:
         width = width / 2
     return width
+
+
+def update_loss_count(model, loss_stats):
+    losses = model.get_current_losses()
+    for loss_name, loss_value in losses.items():
+        loss_stats[loss_name] += loss_value
+    return losses
+
+
+def calc_loss_stats(losses):
+    image_text = {key: round(value, NUM_DECIMAL_DIGITS) for key, value in losses.items()}
+    min_loss = min(image_text.values())
+    max_loss = max(image_text.values())
+    for key, value in image_text.items():
+        if value == min_loss:
+            image_text[key] = (value, 'green')
+        elif value == max_loss:
+            image_text[key] = (value, 'red')
+        else:
+            image_text[key] = (value, 'black')
+    return image_text

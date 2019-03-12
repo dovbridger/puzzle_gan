@@ -17,7 +17,7 @@ class TestCompareModel(BaseModel):
     def modify_commandline_options(parser, is_train=True):
         assert not is_train, 'TestModel cannot be used in train mode'
         parser = PuzzleGanModel.modify_commandline_options(parser, is_train)
-        parser.set_defaults(dataset_name='puzzle_with_old_inpainting')
+       # parser.set_defaults(dataset_name='puzzle_with_old_inpainting')
         parser.add_argument('--generators', type=str, default='[["puzzle_example_burn2", "latest"],["puzzle_example_burn2_b1", "latest"]]',
                             help="Json string representing a list, in which each item is a 2 element list of strings"
                             "as such: ['<generator name>','<epoch to load>']")
@@ -51,7 +51,7 @@ class TestCompareModel(BaseModel):
     def set_input(self, input):
         self.real = input['real'].to(self.device)
         self.burnt = input['burnt'].to(self.device)
-        self.image_paths = input['path']
+        self.image_paths = input['name']
         if self.opt.dataset_name == 'puzzle_with_old_inpainting':
             self.fake_old_inpainting = input[OLD_INPAINTING_NAME].to(self.device)
 

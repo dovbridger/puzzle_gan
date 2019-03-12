@@ -24,7 +24,6 @@ class PuzzleGanModel(BaseModel):
         BaseModel.initialize(self, opt)
         assert opt.generator_window >= 2 * opt.burn_extent,\
             "The generator window({0}) is not large enough to inpaint the burnt area({1})".format(opt.generator_window, 2 * opt.burn_extent)
-        assert opt.discriminator_window % 32 == 0, "Discriminator window must be a multiple of 32, curret is {0}".format(opt.discriminator_window)
         self.isTrain = opt.isTrain
 
         # specify the training losses you want to print out. The program will call base_model.get_current_losses

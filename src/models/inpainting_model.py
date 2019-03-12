@@ -33,12 +33,5 @@ class InpaintingModel(BaseModel):
             else:
                 setattr(self, visual, None)
 
-    def rotate_if_vertical(self):
-        if 'orientation=v' in self.image_paths[0]:
-            for i, visual in enumerate(self.visual_names):
-                t = getattr(self, visual)
-                if t is not None:
-                    setattr(self, visual, t.transpose(3, 2).flip(3))
-
 
 

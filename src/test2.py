@@ -23,7 +23,6 @@ if __name__ == '__main__':
             break
         model.set_input(data)
         model.test()
-        model.rotate_if_vertical()
         visuals = model.get_current_visuals()
         color = ['black', 'green', 'green'] if data['text'][-1] == data['text'][-2] else ['black', 'red', 'green']
         image_text = {model.visual_names[i]: ("{0}_{1}, diff={2}".format(data['text'][i][0].item(),

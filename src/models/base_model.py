@@ -3,6 +3,7 @@ import torch
 from collections import OrderedDict
 from . import networks
 from utils.network_utils import get_network_file_name
+from globals import ORIENTATION_MAGIC, VERTICAL
 
 
 class BaseModel:
@@ -76,6 +77,7 @@ class BaseModel:
 
     # return visualization images. train.py will display these images, and save the images to a html
     def get_current_visuals(self):
+        self.rotate_if_vertical()
         visual_ret = OrderedDict()
         for name in self.visual_names:
             if isinstance(name, str):
@@ -204,3 +206,10 @@ class BaseModel:
             if net is not None:
                 for param in net.parameters():
                     param.requires_grad = requires_grad
+
+    def rotate_if_vertical(self):
+        if ORIENTATION_MAGIC + VERTICAL in self.image_paths[0]:
+            for i, visual in enumerate(self.visual_names):
+                t = getattr(self, visual)
+                if t is not None:
+                    setattr(self, visual, t.transpose(3, 2).flip(3))
