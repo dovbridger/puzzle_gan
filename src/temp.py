@@ -29,16 +29,15 @@ def plot_probability_histogram(model_name, indexes=range(1, 21)):
         with open(file_name, 'r') as f:
             probability_matrix = np.array(json.load(f))
         make_true_false_score_histogram(probability_matrix, 15, 10, true_scores, false_scores)
-    plot_true_false_score_historgrams(true_scores, false_scores, exclude_threshold={'True': 0.8,
-                                                                                    'False': 0.2})
+    plot_true_false_score_historgrams(true_scores, false_scores, exclude_threshold={'True': 1,
+                                                                                    'False': 0})
 
 
 def main():
     models_to_compare = ['Original',
-                         'CalcProbabilityModel_g44_d40_b4_v',
-                         'CalcProbabilityModel_g44_d45_b4_v',
-                         'CalcProbabilityModel_g44_d50_b4_v']
-    #plot_probability_histogram(models_to_compare[3])
+                         'Perfect',
+                         'CalcProbabilityModel_g44_d40_b4_v']
+    #plot_probability_histogram(models_to_compare[1])
     #test_compare_diff_scores(model_names=models_to_compare, indexes=[1], flatten_params=['','','',''])
     combine_all_diff_scores(model_names=models_to_compare, use_log_diff=True, flatten_params=['','','','',''])
     #save_diff_matrix_by_models(models_to_compare[3:4])

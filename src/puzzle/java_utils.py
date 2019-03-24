@@ -325,8 +325,8 @@ def create_probability_matrix2d_with_model_evaluations(model, dataset, metadata)
     num_parts = num_x_parts * num_y_parts
     probability_matrix2d = np.zeros((num_parts, num_parts), dtype='float32')
     probability_matrix2d[:][:] = INVALID_DIFF_VAL
+    print("Starting Orientation {0}".format(metadata.orientation))
     for part1 in range(num_parts):
-        print("Orientation {0}, part1 {1}".format(metadata.orientation, part1, num_x_parts))
         for part2 in range(num_parts):
             if part1 == part2:
                 continue
@@ -341,6 +341,7 @@ def create_probability_matrix2d_with_model_evaluations(model, dataset, metadata)
                 part1_horizontal, part2_horizontal = part1, part2
 
             probability_matrix2d[part1_horizontal][part2_horizontal] = prediction
+    print("Finished Orientation {0}".format(metadata.orientation))
     return probability_matrix2d
 
 
