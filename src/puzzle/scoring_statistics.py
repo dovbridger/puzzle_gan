@@ -145,7 +145,7 @@ def count_best_buddies(diff_matrix3d, num_x_parts, num_y_parts):
 def _load_diff_matricies_for_comparison(puzzle_name, model_names, use_log, flatten_params):
     if not isinstance(flatten_params, list):
         flatten_params = [flatten_params for name in model_names]
-    full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name, part_size=64, orientation=HORIZONTAL)
+    full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name, orientation=HORIZONTAL)
     metadata = read_metadata(path.join(TEST_DATA_PATH, full_puzzle_name))
     diff_matricies = []
     for i, model_name in enumerate(model_names):

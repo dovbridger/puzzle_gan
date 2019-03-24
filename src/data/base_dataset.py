@@ -100,7 +100,6 @@ def __inffer_crop_transform_from_part_size(image, part_size):
     if (new_height, new_width) == (height, width):
         return image
     else:
-        print("Image will be cropped from {0}x{1} to {2}x{3}".format(height, width, new_height, new_width))
         return transforms.functional.crop(image, 0, 0, new_height, new_width)
 
 

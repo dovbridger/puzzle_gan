@@ -5,10 +5,9 @@ from models import create_model
 from utils.visualizer import save_images, Visualizer
 from utils.plot_utils import plot_discriminator_results, print_loss_stats, print_confusion_matrix
 from utils import html
-import numpy as np
 import json
-import utils.plot_utils
-from utils.run_utils import mixed_label_predictions, virtual_model_predictions
+from utils.run_utils import mixed_label_predictions, virtual_model_predictions, calc_loss_stats, update_loss_count,\
+    adjust_image_width_for_vertical_image_in_webpage
 from globals import NUM_DECIMAL_DIGITS
 
 if __name__ == '__main__':
@@ -63,26 +62,16 @@ if __name__ == '__main__':
         img_path = model.get_image_paths()
         losses = None
         if opt.calc_loss_stats:
-            losses = model.get_current_losses()
-            for loss_name, loss_value in losses.items():
-                loss_stats[loss_name] += loss_value
+            losses = update_loss_count(model, loss_stats)
             loss_items_count += 1
         if i % opt.save_images_frequency == 0:
             print('processing (%04d)-th image... %s' % (i, img_path))
             if opt.calc_loss_stats:
-                image_text = {key: round(value, NUM_DECIMAL_DIGITS) for key, value in losses.items()}
-                min_loss = min(image_text.values())
-                max_loss = max(image_text.values())
-                for key, value in losses.items():
-                    if value == min_loss:
-                        image_text[key] = (value, 'green')
-                    elif value == max_loss:
-                        image_text[key] = (value, 'red')
-                    else:
-                        image_text[key] = (value, 'black')
+                image_text = calc_loss_stats(losses)
             mistake_count += int(mistake)
             if mistake or not opt.save_mistakes_only:
-                save_images(webpage, visuals, img_path, additional_texts=image_text, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
+                width = adjust_image_width_for_vertical_image_in_webpage(img_path[0], opt)
+                save_images(webpage, visuals, img_path, additional_texts=image_text, aspect_ratio=opt.aspect_ratio, width=width)
     if opt.discriminator_test:
         if opt.dataset_name == 'puzzle_with_false':
             with open(discriminator_results_file, 'w') as f:

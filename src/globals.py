@@ -1,7 +1,7 @@
 from os import path
 
 METADATA_FILE_NAME = 'metadata.txt'
-WINDOWS_ROOT_DIR = r"C:\SHARE"
+WINDOWS_ROOT_DIR = r"C:\checkouts\puzzle_gan_data\artifacts"
 MODEL_ROOT_DIR_NAME = "CNN_small_input"
 ROOT_OF_MODEL_DATA = path.join(WINDOWS_ROOT_DIR, MODEL_ROOT_DIR_NAME)
 TRAINING_DATA_PATH = path.join(ROOT_OF_MODEL_DATA, "train")
