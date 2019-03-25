@@ -3,13 +3,14 @@ import torch
 from data.base_dataset import BaseDataset, get_transform
 from data.image_folder import make_dataset
 from PIL import Image
-from utils.util import tensor2im, save_image
+from utils.util import tensor2im, save_image, mkdir
 from argparse import Namespace
 from bisect import bisect
 from random import choice
-from globals import ORIENTATION_MAGIC, HORIZONTAL, VERTICAL, NAME_MAGIC
-from puzzle.puzzle_utils import get_full_pair_example_name, get_info_from_file_name, set_orientation_in_name
-
+from globals import ORIENTATION_MAGIC, HORIZONTAL, VERTICAL, NAME_MAGIC, METADATA_FILE_NAME, METADATA_FOLDER_NAME,\
+    METADATA_DELIMITER, DELIMITER_MAGIC
+from puzzle.puzzle_utils import get_full_pair_example_name, get_info_from_file_name, set_orientation_in_name,\
+    get_full_puzzle_name_from_characteristics
 
 class VirtualPuzzleDataset(BaseDataset):
 
@@ -32,13 +33,18 @@ class VirtualPuzzleDataset(BaseDataset):
         self.images = []
         self.images_index_dict = {}
 
-        # The folder containing images of true adjacent puzzle pieces according to 'opt.phase' (train / test)
         self.phase_folder = os.path.join(self.root, opt.phase)
 
         # Paths of the full puzzle images
         self.paths = sorted(make_dataset(self.phase_folder))
         self.transform = get_transform(opt)
         self.load_base_images()
+        if opt.phase == 'test':
+            try:
+                self.create_base_images_metadata()
+            except Exception as e:
+                print("problem creating metadata, exception:{0}".format(str(e)))
+
 
     def load_base_images(self):
         num_examples_accumulated = 0
@@ -71,6 +77,29 @@ class VirtualPuzzleDataset(BaseDataset):
             current_image.num_examples_accumulated = num_examples_accumulated
             self.images_index_dict[current_image.name_horizontal] = len(self.images)
             self.images.append(current_image)
+
+    def create_base_images_metadata(self):
+        metadata_folder = os.path.join(self.phase_folder, METADATA_FOLDER_NAME)
+        mkdir(metadata_folder)
+        for image in self.images:
+            metadata = self.get_image_metadata(image.name_horizontal)
+            puzzle_name = get_info_from_file_name(image.name_horizontal, NAME_MAGIC)
+            file_name = get_full_puzzle_name_from_characteristics(puzzle_name=puzzle_name,
+                                                                  part_size=self.opt.part_size,
+                                                                  orientation=HORIZONTAL) +\
+                        DELIMITER_MAGIC + METADATA_FILE_NAME
+            self.write_metadata_file(metadata, os.path.join(metadata_folder, file_name))
+
+    @staticmethod
+    def write_metadata_file(metadata, file_path):
+        metadata_str = METADATA_DELIMITER.join([
+            'num_y_parts:' + str(metadata.num_y_parts),
+            'num_x_parts:' + str(metadata.num_x_parts),
+            'orientation:' + str(metadata.orientation),
+        ])
+        with open(file_path, 'w') as f:
+            f.write(metadata_str)
+
     def __getitem__(self, index):
         example = self.get_pair_example_by_index(index)
         example['burnt'] = self.burn_image(example['real'])
@@ -136,28 +165,11 @@ class VirtualPuzzleDataset(BaseDataset):
 
     def get_pair_example_by_name(self, image_name, part1, part2):
         real_pair = self.crop_pair_by_image_name(image_name, part1, part2)
-
-########## Temporary JPG bug fix ###########################
-        #orientation = get_info_from_file_name(image_name, ORIENTATION_MAGIC)
-
-        #temp_folder = os.join('temp', image_name)
-        #comparison_folder = os.path.join(r'C:\SHARE\images\pair_inputs_for_completion\test', image_name)
-        #temp_file_name = os.path.join(temp_folder, "{0}_{1}_{2}.jpg".format(part1, orientation, part2))
-        #comparison_file_name = os.path.join(comparison_folder, "{0}_{1}_{2}.jpg".format(part1 + 1, orientation, part2 + 1))
-
-        #real_pair_numpy = tensor2im(torch.unsqueeze(real_pair, 0))
-        #save_image(real_pair_numpy, temp_file_name)
-        #real_pair = self.get_real_image(comparison_file_name)
-        #comparison_pair = self.get_real_image(comparison_file_name)
-        #if (real_pair != comparison_pair).nonzero().shape[0] == 0:
-            #os.rename(temp_file_name, os.path.join(temp_folder, "same-"+os.path.basename(temp_file_name)))
-##########################################################
         burnt_pair = self.burn_image(real_pair)
         name = get_full_pair_example_name(image_name, part1, part2)
         return {'real': real_pair, 'burnt': burnt_pair, 'name': name}
 
     def get_pair_example_from_specific_image(self, specific_image, num_x_parts, parts_range, relative_index):
-
         # The part that corresponds with relative_index
         part_index = int(relative_index / (self.opt.num_false_examples + 1))
         # The part in the original puzzle (after skipping the rightmost column)

@@ -5,7 +5,7 @@ from puzzle.java_utils import get_ordered_neighbors, correct_invalid_values_in_m
     load_diff_matrix_cnn_from_probability, USE_FLATTEN
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, read_metadata
 from utils.plot_utils import plot_y, plot_bars, plot_histograms
-from globals import TEST_DATA_PATH, FIGURES_FOLDER, HORIZONTAL
+from globals import TEST_DATA_PATH, FIGURES_FOLDER, HORIZONTAL, PART_SIZE, METADATA_FOLDER_NAME
 from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
 
 ORIGINAL_DIFF_MATRIX_NAME = 'Original'
@@ -145,8 +145,8 @@ def count_best_buddies(diff_matrix3d, num_x_parts, num_y_parts):
 def _load_diff_matricies_for_comparison(puzzle_name, model_names, use_log, flatten_params):
     if not isinstance(flatten_params, list):
         flatten_params = [flatten_params for name in model_names]
-    full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name, orientation=HORIZONTAL)
-    metadata = read_metadata(path.join(TEST_DATA_PATH, full_puzzle_name))
+    full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name, part_size=PART_SIZE, orientation=HORIZONTAL)
+    metadata = read_metadata(path.join(TEST_DATA_PATH, METADATA_FOLDER_NAME), full_puzzle_name)
     diff_matricies = []
     for i, model_name in enumerate(model_names):
         if model_name == ORIGINAL_DIFF_MATRIX_NAME:
