@@ -84,10 +84,9 @@ class BaseOptions():
                             help='Threshold from which to start flattening probability')
         parser.add_argument('--flatten_power', type=float, default=1,
                             help='Exponent to be used to flatten probability above "flatten_threshold')
-        parser.add_argument('--dataset_mean', type=str, default='[0.5,0.5,0.5]',
-                            help='Json string representing a size 3 list of the mean per-channel values of the dataset')
-        parser.add_argument('--dataset_std', type=str, default='[0.5,0.5,0.5]',
-                            help='Json string representing a size 3 list of the STD per-channel values of the dataset')
+        parser.add_argument('--use_specific_normalization', action='store_true',
+                            help='When normalizing use datset mean and STD'
+                                 'as specified in global variables "DATASET_MEAN", "DATASET_STD"')
         self.initialized = True
         return parser
 
