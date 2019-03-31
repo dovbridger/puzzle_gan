@@ -1,7 +1,7 @@
 import torch.utils.data as data
 from PIL import Image
 import torchvision.transforms as transforms
-import json
+from globals import DATASET_MEAN, DATASET_STD
 
 
 class BaseDataset(data.Dataset):
@@ -65,10 +65,11 @@ def get_transform(opt):
 
     if opt.isTrain and not opt.no_flip:
         transform_list.append(transforms.RandomHorizontalFlip())
-
+    normalization_mean = DATASET_MEAN if opt.use_specific_normilization else [0.5, 0.5, 0.5]
+    normilization_std = DATASET_STD if opt.use_specific_normilization else [0.5, 0.5, 0.5]
     transform_list += [transforms.ToTensor(),
-                       transforms.Normalize(get_normalization_parameters(opt.dataset_mean),
-                                            get_normalization_parameters(opt.dataset_std))]
+                       transforms.Normalize(normalization_mean,
+                                            normilization_std)]
     return transforms.Compose(transform_list)
 
 
@@ -101,18 +102,6 @@ def __inffer_crop_transform_from_part_size(image, part_size):
         return image
     else:
         return transforms.functional.crop(image, 0, 0, new_height, new_width)
-
-
-def get_normalization_parameters(param_str):
-    try:
-        param = json.loads(param_str)
-    except Exception:
-        print("invalid json string for dataset statistics: %s" % param_str)
-        raise
-    assert len(param) == 3, "dataset statistics param {0} is invalid, must have length 3".format(param_str)
-    for channel in param:
-        assert channel >= 0, "dataset statistics param {0} must contain only positive values".format(param_str)
-    return param
 
 
 def __scale_width(img, target_width):
