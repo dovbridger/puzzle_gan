@@ -3,8 +3,8 @@ from os import path
 METADATA_FILE_NAME = 'metadata.txt'
 METADATA_FOLDER_NAME = 'metadata'
 METADATA_DELIMITER = ';'
-WINDOWS_ROOT_DIR = r'C:\SHARE\checkouts\puzzle_gan_data'
-DATASET_NAME = 'virtual_puzzle_parts'
+WINDOWS_ROOT_DIR = r"E:\checkouts\puzzle_gan_data"
+DATASET_NAME = 'virtual_puzzle_parts_big'
 MODEL_ROOT_DIR_NAME = "CNN_small_input"
 ROOT_OF_MODEL_DATA = path.join(WINDOWS_ROOT_DIR, 'artifacts', MODEL_ROOT_DIR_NAME)
 TEST_DATA_PATH = path.join(WINDOWS_ROOT_DIR, 'datasets', DATASET_NAME, "test")
