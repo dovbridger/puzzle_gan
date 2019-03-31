@@ -3,7 +3,7 @@ import numpy as np
 import json
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, get_info_from_file_name
 from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
-from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, INPUT_IMAGE_TYPE, ROOT_OF_MODEL_DATA, TEST_DATA_PATH,\
+from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, PART_SIZE_MAGIC, ROOT_OF_MODEL_DATA,\
     PART_SIZE, HORIZONTAL, NAME_MAGIC
 
 JAVA_DATA_FOLDER = r'C:\Users\dov\workspace\Puzzle Resources\Data\Init'
@@ -129,12 +129,15 @@ def convert_orientation_to_index(orientation):
         raise Exception("Incorrect orientation + '" + orientation + "'")
 
 
-def get_java_diff_file(full_puzzle_name, burn_extent=BURN_EXTENT, part_size=PART_SIZE):
-    puzzle_name = get_info_from_file_name(full_puzzle_name, NAME_MAGIC)
+def get_java_diff_file(puzzle_name, burn_extent=BURN_EXTENT, part_size=PART_SIZE):
     for file in [f for f in os.listdir(JAVA_DATA_FOLDER) if f.endswith(JAVA_DIFF_MATRIX_FILE_NAME)]:
-        if puzzle_name in file and part_size in file and BURN_EXTENT_MAGIC+burn_extent in file:
+        if NAME_MAGIC + puzzle_name in file and\
+                PART_SIZE_MAGIC + part_size in file and\
+                BURN_EXTENT_MAGIC + burn_extent in file:
             return os.path.join(JAVA_DATA_FOLDER, file)
-    raise FileExistsError("Diff matrix file doesn't exist for " + full_puzzle_name)
+    raise FileExistsError("Diff matrix file doesn't exist for name-{0}, part_size-{1} burn_extent-{2}".format(puzzle_name,
+                                                                                                              part_size,
+                                                                                                              burn_extent))
 
 
 def calc_confidence(diff_matrix3d):
@@ -265,8 +268,7 @@ def assign_diff_values_by_original_rank(num_values, lower_bound=None, upper_boun
 def save_diff_matrix_cnn_for_java(puzzle_names, model_name, additional_params='0', burn_extent=BURN_EXTENT):
     for puzzle_name in puzzle_names:
         diff_matrix_cnn = load_diff_matrix_cnn(puzzle_name, model_name)
-        full_puzzle_name = get_full_puzzle_name_from_characteristics(puzzle_name=puzzle_name, orientation=HORIZONTAL)
-        original_java_diff_matrix_file = get_java_diff_file(full_puzzle_name, burn_extent=burn_extent)
+        original_java_diff_matrix_file = get_java_diff_file(puzzle_name, burn_extent=burn_extent)
         modified_java_diff_matrix_file = original_java_diff_matrix_file[:-4] + \
                                          JAVA_MODIFIED_DIFF_MATRIX_EXTENSION + "_" + model_name + "_" + additional_params +\
                                          original_java_diff_matrix_file[-4:]

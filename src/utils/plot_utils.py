@@ -108,8 +108,8 @@ def configure_axes(index, axes, titles=None, tick_labels=None, bar_width=0.4, da
         tick_width = data_per_plot * bar_width
         axes[index].set_xticks((np.arange(len(tick_labels)) + 0.5) * tick_width)
         axes[index].set_xticklabels(tick_labels)
-
-    axes[index].legend()
+    if index == len(axes) - 1:
+        axes[index].legend(loc=0)
 
 
 def print_loss_stats(loss_stats, output_file_name):
