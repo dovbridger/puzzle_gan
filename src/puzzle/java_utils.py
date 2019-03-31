@@ -3,9 +3,8 @@ import numpy as np
 import json
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, get_info_from_file_name
 from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
-from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, PART_SIZE_MAGIC, ROOT_OF_MODEL_DATA,\
+from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, INPUT_IMAGE_TYPE, ROOT_OF_MODEL_DATA,\
     PART_SIZE, HORIZONTAL, NAME_MAGIC
-
 JAVA_DATA_FOLDER = r'C:\Users\dov\workspace\Puzzle Resources\Data\Init'
 JAVA_DIFF_MATRIX_FILE_NAME = "diff_matrix.txt"
 JAVA_MODIFIED_DIFF_MATRIX_EXTENSION = "_modified"
