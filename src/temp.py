@@ -1,5 +1,6 @@
 from puzzle.scoring_statistics import run_diff_score_comparison, combine_all_diff_scores,\
     make_true_false_score_histogram, plot_true_false_score_historgrams
+from globals import BURN_EXTENT
 import json
 
 
@@ -18,7 +19,7 @@ def save_diff_matrix_by_models(model_names):
     for model_name in model_names:
         save_diff_matrix_cnn_for_java([str(x) + 'b' for x in range(1, 21)], model_name,
                                       additional_params='0',
-                                      burn_extent='4')
+                                      burn_extent=BURN_EXTENT)
 
 def plot_probability_histogram(model_name, indexes=range(1, 21)):
     true_scores, false_scores = [], []
@@ -36,12 +37,12 @@ def plot_probability_histogram(model_name, indexes=range(1, 21)):
 def main():
     models_to_compare = ['Original',
                          'Perfect',
-                         'CalcProbabilityModel_g44_d40_b4_v',
-                         'CalcProbabilityModel_g44_d40_b4_dw32-42']
+                         'CalcProbabilityModel_g44_d50_b2_dw64',
+                         'CalcProbabilityModel_g40_d30_b2b2_dw64']
     #plot_probability_histogram(models_to_compare[1])
     #test_compare_diff_scores(model_names=models_to_compare, indexes=[1], flatten_params=['','','',''])
-    combine_all_diff_scores(model_names=models_to_compare, use_log_diff=True, flatten_params=['','','','',(0.7,10)])
-    #save_diff_matrix_by_models(models_to_compare[3:4])
+    combine_all_diff_scores(model_names=models_to_compare, use_log_diff=True, flatten_params=['', '', '', '', '', ''])
+    save_diff_matrix_by_models(models_to_compare[2:])
 
 
 if __name__ == '__main__':

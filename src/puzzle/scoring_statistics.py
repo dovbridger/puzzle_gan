@@ -150,9 +150,9 @@ def _load_diff_matricies_for_comparison(puzzle_name, model_names, use_log, flatt
     diff_matricies = []
     for i, model_name in enumerate(model_names):
         if model_name == ORIGINAL_DIFF_MATRIX_NAME:
-            diff_matrix = parse_3d_numpy_array_from_json(get_java_diff_file(full_puzzle_name))
+            diff_matrix = parse_3d_numpy_array_from_json(get_java_diff_file(puzzle_name))
         elif model_name == PERFECT_DIFF_MATRIX_NAME:
-            java_diff_file_perfect = get_java_diff_file(full_puzzle_name, burn_extent='0')
+            java_diff_file_perfect = get_java_diff_file(puzzle_name, burn_extent='0')
             diff_matrix = parse_3d_numpy_array_from_json(java_diff_file_perfect)
         else:
             if CALC_PROBABILITY_MODEL_NAME in model_name:
