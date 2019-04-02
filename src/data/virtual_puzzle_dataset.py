@@ -15,7 +15,7 @@ from puzzle.java_utils import get_java_diff_file, parse_3d_numpy_array_from_json
     convert_orientation_to_index
 
 MAX_NEIGHBOR_LIMIT = 9999
-SAVE_CROPPED_IMAGES = True
+SAVE_CROPPED_IMAGES = False
 CROPPED_IMAGES_FOLDER = 'cropped'
 
 class VirtualPuzzleDataset(BaseDataset):
@@ -47,9 +47,10 @@ class VirtualPuzzleDataset(BaseDataset):
         # Paths of the full puzzle images
         self.paths = sorted(make_dataset(self.phase_folder))
         self.transform = get_transform(opt)
+        print("Loading base images")
         self.load_base_images()
-        self.set_neighbor_choice_options_limit(self,
-                                               opt.max_nieghbor_rank if opt.max_nieghbor_rank >=2 else MAX_NEIGHBOR_LIMIT)
+        print("Base images are loaded")
+        self.set_neighbor_choice_options_limit(opt.max_neighbor_rank if opt.max_neighbor_rank >=2 else MAX_NEIGHBOR_LIMIT)
         if opt.phase == 'test':
             try:
                 self.create_base_images_metadata()
@@ -94,8 +95,9 @@ class VirtualPuzzleDataset(BaseDataset):
     def save_cropped_image(self, image):
         cropped_folder = os.path.join(self.phase_folder, CROPPED_IMAGES_FOLDER)
         mkdir(cropped_folder)
-        image_numpy = tensor2im(image.horizontal)
-        image_path = os.path.join(cropped_folder, image.name_horizontal + image.image_extension)
+        image_numpy = tensor2im(image.horizontal.unsqueeze(0))
+        puzzle_name = get_info_from_file_name(image.name_horizontal, NAME_MAGIC)
+        image_path = os.path.join(cropped_folder, puzzle_name + image.image_extension)
         save_image(image_numpy, image_path)
 
     def create_base_images_metadata(self):
@@ -131,7 +133,8 @@ class VirtualPuzzleDataset(BaseDataset):
     def get_neighbor_choices(self, image):
         num_parts = image.num_x_parts * image.num_y_parts
         if self.opt.max_neighbor_rank <= 1:
-            return {HORIZONTAL: range(num_parts), VERTICAL: range(num_parts)}
+            all_choices = [range(num_parts) for part in range(num_parts)]
+            return {HORIZONTAL: all_choices, VERTICAL: all_choices}
 
         puzzle_name = get_info_from_file_name(image.name_horizontal, NAME_MAGIC)
         original_diff_matrix3d = parse_3d_numpy_array_from_json(get_java_diff_file(puzzle_name,
@@ -139,13 +142,22 @@ class VirtualPuzzleDataset(BaseDataset):
                                                                                    part_size=self.opt.part_size))
         result = {HORIZONTAL: [], VERTICAL: []}
         for name in [image.name_horizontal, image.name_vertical]:
+            metadata = self.get_image_metadata(name, image)
             direction_index = convert_orientation_to_index(metadata.orientation)
             diff_matrix2d = original_diff_matrix3d[direction_index, :, :]
-            metadata = self.get_image_metadata(name)
             for part in range(num_parts):
                 current_part_choices = [part for (part, score) in
                     get_top_k_neighbors(part, diff_matrix2d, metadata,
                                         self.opt.max_neighbor_rank, reverse=False)]
+                adjacent = part + 1
+
+                # Remove true neighbor from that part's false neighbor choices (if exists)
+                if adjacent % metadata.num_x_parts != 0 and adjacent in current_part_choices:
+                    current_part_choices.remove(adjacent)
+
+                # Remove the part itself from it's neighbor choices
+                if part in current_part_choices:
+                    current_part_choices.remove(part)
                 result[metadata.orientation].append(current_part_choices)
         return result
 
@@ -234,7 +246,8 @@ class VirtualPuzzleDataset(BaseDataset):
             label = 0
             while (part2 == part1 + 1 or part2 == part1):
                 # Randomly select a part until it is valid
-                part2 = choice(neighbor_choices[:self.neighbor_choices_limit])
+                part2 = choice(neighbor_choices[part1][:self.neighbor_choices_limit])
+ #               print("chose {0} for {1] from {1}".format(part2, part1, neighbor_choices[part1][:self.neighbor_choices_limit]))
         pair_tensor = self.crop_pair_from_image(specific_image, num_x_parts, part1, part2)
         return {'part1': part1, 'part2': part2, 'label': label, 'real': pair_tensor}
 
@@ -262,8 +275,9 @@ class VirtualPuzzleDataset(BaseDataset):
         return image[:, row * self.opt.part_size: (row + 1) * self.opt.part_size,
                      column * self.opt.part_size: (column + 1) * self.opt.part_size]
 
-    def get_image_metadata(self, image_name):
-        image = self._get_image_by_name(image_name)
+    def get_image_metadata(self, image_name, image=None):
+        if image is None:
+            image = self._get_image_by_name(image_name)
         metadata = Namespace()
         metadata.orientation = get_info_from_file_name(image_name, ORIENTATION_MAGIC)
         assert metadata.orientation in [HORIZONTAL, VERTICAL], "Invalid orientation in image_name"
