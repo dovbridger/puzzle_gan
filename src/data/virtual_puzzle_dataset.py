@@ -15,6 +15,8 @@ from puzzle.java_utils import get_java_diff_file, parse_3d_numpy_array_from_json
     convert_orientation_to_index
 
 MAX_NEIGHBOR_LIMIT = 9999
+SAVE_CROPPED_IMAGES = True
+CROPPED_IMAGES_FOLDER = 'cropped'
 
 class VirtualPuzzleDataset(BaseDataset):
 
@@ -73,6 +75,8 @@ class VirtualPuzzleDataset(BaseDataset):
             assert height % self.opt.part_size == 0 and width % self.opt.part_size == 0,\
                 "Image ({0}x{1} wasn't cropped to be a multiple of 'part_size'({2})".format(height, width,
                                                                                             self.opt.part_size)
+            if SAVE_CROPPED_IMAGES:
+                self.save_cropped_image(current_image)
             current_image.num_x_parts = int(width / self.opt.part_size)
             current_image.num_y_parts = int(height / self.opt.part_size)
             current_image.num_horizontal_examples = self.count_pair_examples_in_image(current_image.num_x_parts,
@@ -86,6 +90,13 @@ class VirtualPuzzleDataset(BaseDataset):
             current_image.neighbor_choices = self.get_neighbor_choices(current_image)
             self.images_index_dict[current_image.name_horizontal] = len(self.images)
             self.images.append(current_image)
+
+    def save_cropped_image(self, image):
+        cropped_folder = os.path.join(self.phase_folder, CROPPED_IMAGES_FOLDER)
+        mkdir(cropped_folder)
+        image_numpy = tensor2im(image.horizontal)
+        image_path = os.path.join(cropped_folder, image.name_horizontal + image.image_extension)
+        save_image(image_numpy, image_path)
 
     def create_base_images_metadata(self):
         metadata_folder = os.path.join(self.phase_folder, METADATA_FOLDER_NAME)
