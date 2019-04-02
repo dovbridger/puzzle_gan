@@ -14,6 +14,8 @@ from puzzle.puzzle_utils import get_full_pair_example_name, get_info_from_file_n
 from puzzle.java_utils import get_java_diff_file, parse_3d_numpy_array_from_json, get_top_k_neighbors,\
     convert_orientation_to_index
 
+MAX_NEIGHBOR_LIMIT = 9999
+
 class VirtualPuzzleDataset(BaseDataset):
 
     @staticmethod
@@ -44,6 +46,8 @@ class VirtualPuzzleDataset(BaseDataset):
         self.paths = sorted(make_dataset(self.phase_folder))
         self.transform = get_transform(opt)
         self.load_base_images()
+        self.set_neighbor_choice_options_limit(self,
+                                               opt.max_nieghbor_rank if opt.max_nieghbor_rank >=2 else MAX_NEIGHBOR_LIMIT)
         if opt.phase == 'test':
             try:
                 self.create_base_images_metadata()
@@ -104,6 +108,14 @@ class VirtualPuzzleDataset(BaseDataset):
         ])
         with open(file_path, 'w') as f:
             f.write(metadata_str)
+
+    def set_neighbor_choice_options_limit(self, num_neighbors):
+        if num_neighbors < 2:
+            print("WARNING: You must use a minimum of 2 neighbor choices, limit will be 2")
+            self.neighbor_choices_limit = 2
+        else:
+            self.neighbor_choices_limit = num_neighbors
+
 
     def get_neighbor_choices(self, image):
         num_parts = image.num_x_parts * image.num_y_parts
@@ -211,7 +223,7 @@ class VirtualPuzzleDataset(BaseDataset):
             label = 0
             while (part2 == part1 + 1 or part2 == part1):
                 # Randomly select a part until it is valid
-                part2 = choice(neighbor_choices)
+                part2 = choice(neighbor_choices[:self.neighbor_choices_limit])
         pair_tensor = self.crop_pair_from_image(specific_image, num_x_parts, part1, part2)
         return {'part1': part1, 'part2': part2, 'label': label, 'real': pair_tensor}
 
