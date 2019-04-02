@@ -11,6 +11,8 @@ from globals import ORIENTATION_MAGIC, HORIZONTAL, VERTICAL, NAME_MAGIC, METADAT
     METADATA_DELIMITER, DELIMITER_MAGIC
 from puzzle.puzzle_utils import get_full_pair_example_name, get_info_from_file_name, set_orientation_in_name,\
     get_full_puzzle_name_from_characteristics
+from puzzle.java_utils import get_java_diff_file, parse_3d_numpy_array_from_json, get_top_k_neighbors,\
+    convert_orientation_to_index
 
 class VirtualPuzzleDataset(BaseDataset):
 
@@ -23,6 +25,9 @@ class VirtualPuzzleDataset(BaseDataset):
                                  'must be a multiple of "part_size"')
         parser.add_argument('--puzzle_name', type=str, default='',
                             help="Specify a single puzzle name if you want to it to be the only one in the dataset")
+        parser.add_argument('--max_neighbor_rank', type=int, default=-1,
+                            help='Only use false neighbors that are ranked up to this number in the original'
+                                 '0-burn diff matrix. Min value = 2. 1 or less means use all ranks')
         parser.set_defaults(resize_or_crop='crop_to_part_size')
         parser.set_defaults(nThreads=0)
         return parser
@@ -66,7 +71,6 @@ class VirtualPuzzleDataset(BaseDataset):
                                                                                             self.opt.part_size)
             current_image.num_x_parts = int(width / self.opt.part_size)
             current_image.num_y_parts = int(height / self.opt.part_size)
-            current_image.parts_range = range(current_image.num_x_parts * current_image.num_y_parts)
             current_image.num_horizontal_examples = self.count_pair_examples_in_image(current_image.num_x_parts,
                                                                                       current_image.num_y_parts)
             # x and y are reversed in vertical
@@ -75,6 +79,7 @@ class VirtualPuzzleDataset(BaseDataset):
             current_image.num_examples = current_image.num_horizontal_examples + current_image.num_vertical_examples
             num_examples_accumulated += current_image.num_examples
             current_image.num_examples_accumulated = num_examples_accumulated
+            current_image.neighbor_choices = self.get_neighbor_choices(current_image)
             self.images_index_dict[current_image.name_horizontal] = len(self.images)
             self.images.append(current_image)
 
@@ -99,6 +104,28 @@ class VirtualPuzzleDataset(BaseDataset):
         ])
         with open(file_path, 'w') as f:
             f.write(metadata_str)
+
+    def get_neighbor_choices(self, image):
+        num_parts = image.num_x_parts * image.num_y_parts
+        if self.opt.max_neighbor_rank <= 1:
+            return {HORIZONTAL: range(num_parts), VERTICAL: range(num_parts)}
+
+        puzzle_name = get_info_from_file_name(image.name_horizontal, NAME_MAGIC)
+        original_diff_matrix3d = parse_3d_numpy_array_from_json(get_java_diff_file(puzzle_name,
+                                                                                   burn_extent='0',
+                                                                                   part_size=self.opt.part_size))
+        result = {HORIZONTAL: [], VERTICAL: []}
+        for name in [image.name_horizontal, image.name_vertical]:
+            direction_index = convert_orientation_to_index(metadata.orientation)
+            diff_matrix2d = original_diff_matrix3d[direction_index, :, :]
+            metadata = self.get_image_metadata(name)
+            for part in range(num_parts):
+                current_part_choices = [part for (part, score) in
+                    get_top_k_neighbors(part, diff_matrix2d, metadata,
+                                        self.opt.max_neighbor_rank, reverse=False)]
+                result[metadata.orientation].append(current_part_choices)
+        return result
+
 
     def __getitem__(self, index):
         example = self.get_pair_example_by_index(index)
@@ -150,13 +177,13 @@ class VirtualPuzzleDataset(BaseDataset):
     def get_pair_example_by_relative_index(self, image, relative_index):
         if relative_index < image.num_horizontal_examples:
             example = self.get_pair_example_from_specific_image(image.horizontal, image.num_x_parts,
-                                                                image.parts_range, relative_index)
+                                                                image.neighbor_choices[HORIZONTAL], relative_index)
             image_name = image.name_horizontal
         elif relative_index < image.num_examples:
             relative_index -= image.num_horizontal_examples
             # num_y_parts is the number of x parts in the vertical image
             example = self.get_pair_example_from_specific_image(image.vertical, image.num_y_parts,
-                                                                image.parts_range, relative_index)
+                                                                image.neighbor_choices[VERTICAL], relative_index)
             image_name = image.name_vertical
         else:
             raise IndexError("Invalid index: {0}".format(relative_index))
@@ -169,7 +196,7 @@ class VirtualPuzzleDataset(BaseDataset):
         name = get_full_pair_example_name(image_name, part1, part2)
         return {'real': real_pair, 'burnt': burnt_pair, 'name': name}
 
-    def get_pair_example_from_specific_image(self, specific_image, num_x_parts, parts_range, relative_index):
+    def get_pair_example_from_specific_image(self, specific_image, num_x_parts, neighbor_choices, relative_index):
         # The part that corresponds with relative_index
         part_index = int(relative_index / (self.opt.num_false_examples + 1))
         # The part in the original puzzle (after skipping the rightmost column)
@@ -184,7 +211,7 @@ class VirtualPuzzleDataset(BaseDataset):
             label = 0
             while (part2 == part1 + 1 or part2 == part1):
                 # Randomly select a part until it is valid
-                part2 = choice(parts_range)
+                part2 = choice(neighbor_choices)
         pair_tensor = self.crop_pair_from_image(specific_image, num_x_parts, part1, part2)
         return {'part1': part1, 'part2': part2, 'label': label, 'real': pair_tensor}
 
