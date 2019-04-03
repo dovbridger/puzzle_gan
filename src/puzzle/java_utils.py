@@ -3,9 +3,9 @@ import numpy as np
 import json
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, get_info_from_file_name
 from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
-from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, INPUT_IMAGE_TYPE, ROOT_OF_MODEL_DATA,\
-    PART_SIZE, HORIZONTAL, NAME_MAGIC
-JAVA_DATA_FOLDER = r'C:\Users\dov\workspace\Puzzle Resources\Data\Init'
+from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, ROOT_OF_MODEL_DATA, WINDOWS_ROOT_DIR,\
+    PART_SIZE, NAME_MAGIC, PART_SIZE_MAGIC, VERTICAL, HORIZONTAL
+JAVA_DATA_FOLDER = os.path.join(WINDOWS_ROOT_DIR, 'java_artifacts', 'Puzzle Resources', 'Data', 'Init')
 JAVA_DIFF_MATRIX_FILE_NAME = "diff_matrix.txt"
 JAVA_MODIFIED_DIFF_MATRIX_EXTENSION = "_modified"
 # One power less the the original max float (38)
@@ -44,11 +44,11 @@ def get_ordered_neighbors(part, diff_matrix2d):
 
 
 def get_top_k_neighbors(part, diff_matrix2d, metadata, k, reverse=False):
-    if metadata['orientation'] == 'v':
+    if metadata.orientation == VERTICAL:
         # Conversion to horizontal part numbers is needed in order to properly access the diff matrix
         part = convert_vertical_to_horizontal_part_number(part,
-                                                          num_x_parts=int(metadata['num_x_parts']),
-                                                          num_y_parts=int(metadata['num_y_parts']))
+                                                          num_x_parts=metadata.num_x_parts,
+                                                          num_y_parts=metadata.num_y_parts)
     k = min(k, diff_matrix2d.shape[1] - 1)
     ordered_neighbors = get_ordered_neighbors(part, diff_matrix2d)
     result = []
@@ -57,12 +57,12 @@ def get_top_k_neighbors(part, diff_matrix2d, metadata, k, reverse=False):
             i = len(ordered_neighbors) - i - 1
         result.append(ordered_neighbors[i])
 
-    if metadata['orientation'] == 'v':
+    if metadata.orientation == VERTICAL:
         # Conversion back to vertical part numbers is needed
         # num_x_parts and num_y_parts are reversed intentionally because of the previous conversion to horizontal
         result = [(convert_horizontal_to_vertical_part_number(part,
-                                                              num_x_parts=int(metadata['num_y_parts']),
-                                                              num_y_parts=int(metadata['num_x_parts'])),
+                                                              num_x_parts=metadata.num_y_parts,
+                                                              num_y_parts=metadata.num_x_parts),
                    score)
                   for (part, score) in result]
     return result
@@ -120,9 +120,9 @@ def convert_orientation_to_index(orientation):
     :param orientation: 'v' for vertical or 'h' for horizontal
     :return: corresponding index for the difference matrix
     '''
-    if orientation == 'v':
+    if orientation == VERTICAL:
         return 1
-    elif orientation == 'h':
+    elif orientation == HORIZONTAL:
         return 3
     else:
         raise Exception("Incorrect orientation + '" + orientation + "'")
@@ -131,8 +131,8 @@ def convert_orientation_to_index(orientation):
 def get_java_diff_file(puzzle_name, burn_extent=BURN_EXTENT, part_size=PART_SIZE):
     for file in [f for f in os.listdir(JAVA_DATA_FOLDER) if f.endswith(JAVA_DIFF_MATRIX_FILE_NAME)]:
         if NAME_MAGIC + puzzle_name in file and\
-                PART_SIZE_MAGIC + part_size in file and\
-                BURN_EXTENT_MAGIC + burn_extent in file:
+                PART_SIZE_MAGIC + str(part_size) in file and\
+                BURN_EXTENT_MAGIC + str(burn_extent) in file:
             return os.path.join(JAVA_DATA_FOLDER, file)
     raise FileExistsError("Diff matrix file doesn't exist for name-{0}, part_size-{1} burn_extent-{2}".format(puzzle_name,
                                                                                                               part_size,
