@@ -22,7 +22,7 @@ CROPPED_IMAGES_FOLDER = 'cropped'
 
 class VirtualPuzzleDataset(BaseDataset):
     transform = None
-
+    burn_mask = None
     @staticmethod
     def modify_commandline_options(parser, is_train):
         parser.add_argument('--num_false_examples', type=int, default=0,
@@ -59,12 +59,17 @@ class VirtualPuzzleDataset(BaseDataset):
                 self.create_base_images_metadata()
             except Exception as e:
                 print("problem creating metadata, exception:{0}".format(str(e)))
+        VirtualPuzzleDataset.burn_mask = torch.ones((opt.input_nc, opt.part_size, opt.part_size), dtype=torch.uint8)
+        VirtualPuzzleDataset.burn_mask[:, opt.burn_extent: opt.part_size - opt.burn_extent,
+                                          opt.burn_extent: opt.part_size - opt.burn_extent] = 0
+        VirtualPuzzleDataset.burn_mask = torch.cat((VirtualPuzzleDataset.burn_mask, VirtualPuzzleDataset.burn_mask), 2)
 
     def load_base_images(self):
         num_examples_accumulated = 0
+        VirtualImage.initialize(self.opt)
         for path in [p for p in self.paths if ORIENTATION_MAGIC + HORIZONTAL in p and
                      NAME_MAGIC + str(self.opt.puzzle_name) in p]:
-            current_image = VirtualImage(path, self.opt, num_examples_accumulated)
+            current_image = VirtualImage(path, num_examples_accumulated)
             num_examples_accumulated = current_image.num_examples_accumulated
             if SAVE_CROPPED_IMAGES:
                 self.save_cropped_image(current_image)
@@ -130,18 +135,14 @@ class VirtualPuzzleDataset(BaseDataset):
 
         return real_image
 
-    def burn_image(self, real_image):
+    @staticmethod
+    def burn_image(real_image):
         '''
         Sets a (2 * opt.burn_extent) column of pixels to -1 in the center of a cloned instance of real_image
         :param real_image: The input image
         :return: The burnt image
         '''
-        burnt_image = torch.clone(real_image)
-        channels, height, width = burnt_image.shape
-        center = int(width / 2)
-        burn_extent = self.opt.burn_extent
-        burnt_image[:, :, center - burn_extent: center + burn_extent] = -1
-        return burnt_image
+        return torch.where(VirtualPuzzleDataset.burn_mask == 1, torch.tensor(-1.0), real_image)
 
     def name(self):
         return 'VirtualPuzzleDataset'
@@ -180,7 +181,7 @@ class VirtualPuzzleDataset(BaseDataset):
         image = self._get_image_by_name(image_name)
         orientation = get_info_from_file_name(image_name, ORIENTATION_MAGIC)
         if orientation in [HORIZONTAL, VERTICAL]:
-            image.crop_pair_from_image(part1, part2, orientation)
+            return image.crop_pair_from_image(part1, part2, orientation)
         else:
             raise KeyError("No image with valid orientation magic exists for path %s" % image_name)
 
