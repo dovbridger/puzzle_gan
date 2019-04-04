@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import json
-from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics, get_info_from_file_name
+from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics
 from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
 from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, ROOT_OF_MODEL_DATA, WINDOWS_ROOT_DIR,\
     PART_SIZE, NAME_MAGIC, PART_SIZE_MAGIC, VERTICAL, HORIZONTAL
