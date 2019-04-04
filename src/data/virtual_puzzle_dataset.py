@@ -61,34 +61,9 @@ class VirtualPuzzleDataset(BaseDataset):
     def load_base_images(self):
         num_examples_accumulated = 0
         for path in [p for p in self.paths if ORIENTATION_MAGIC + HORIZONTAL in p and
-                                              NAME_MAGIC + str(self.opt.puzzle_name) in p]:
-            current_image = Namespace()
-            current_image.image_dir = os.path.dirname(path)
-            current_image.name_horizontal, current_image.image_extension = os.path.splitext(os.path.basename(path))
-            current_image.name_vertical = set_orientation_in_name(current_image.name_horizontal, VERTICAL)
-
-            current_image.horizontal = self.get_real_image(os.path.join(
-                current_image.image_dir,
-                current_image.name_horizontal + current_image.image_extension))
-            current_image.vertical = current_image.horizontal.transpose(2, 1).flip(1)
-            _, height, width = current_image.horizontal.shape
-
-            assert height % self.opt.part_size == 0 and width % self.opt.part_size == 0,\
-                "Image ({0}x{1} wasn't cropped to be a multiple of 'part_size'({2})".format(height, width,
-                                                                                            self.opt.part_size)
-            if SAVE_CROPPED_IMAGES:
-                self.save_cropped_image(current_image)
-            current_image.num_x_parts = int(width / self.opt.part_size)
-            current_image.num_y_parts = int(height / self.opt.part_size)
-            current_image.num_horizontal_examples = self.count_pair_examples_in_image(current_image.num_x_parts,
-                                                                                      current_image.num_y_parts)
-            # x and y are reversed in vertical
-            current_image.num_vertical_examples = self.count_pair_examples_in_image(current_image.num_y_parts,
-                                                                                    current_image.num_x_parts)
-            current_image.num_examples = current_image.num_horizontal_examples + current_image.num_vertical_examples
-            num_examples_accumulated += current_image.num_examples
-            current_image.num_examples_accumulated = num_examples_accumulated
-            current_image.neighbor_choices = self.get_neighbor_choices(current_image)
+                     NAME_MAGIC + str(self.opt.puzzle_name) in p]:
+            current_image = VirtualImage(path, self.opt, num_examples_accumulated)
+            num_examples_accumulated = current_image.num_examples_accumulated
             self.images_index_dict[current_image.name_horizontal] = len(self.images)
             self.images.append(current_image)
 
@@ -130,38 +105,6 @@ class VirtualPuzzleDataset(BaseDataset):
             self.neighbor_choices_limit = num_neighbors
 
 
-    def get_neighbor_choices(self, image):
-        num_parts = image.num_x_parts * image.num_y_parts
-        if self.opt.max_neighbor_rank <= 1:
-            all_choices = [range(num_parts) for part in range(num_parts)]
-            return {HORIZONTAL: all_choices, VERTICAL: all_choices}
-
-        puzzle_name = get_info_from_file_name(image.name_horizontal, NAME_MAGIC)
-        original_diff_matrix3d = parse_3d_numpy_array_from_json(get_java_diff_file(puzzle_name,
-                                                                                   burn_extent='0',
-                                                                                   part_size=self.opt.part_size))
-        result = {HORIZONTAL: [], VERTICAL: []}
-        for name in [image.name_horizontal, image.name_vertical]:
-            metadata = self.get_image_metadata(name, image)
-            direction_index = convert_orientation_to_index(metadata.orientation)
-            diff_matrix2d = original_diff_matrix3d[direction_index, :, :]
-            for part in range(num_parts):
-                current_part_choices = [part for (part, score) in
-                    get_top_k_neighbors(part, diff_matrix2d, metadata,
-                                        self.opt.max_neighbor_rank, reverse=False)]
-                adjacent = part + 1
-
-                # Remove true neighbor from that part's false neighbor choices (if exists)
-                if adjacent % metadata.num_x_parts != 0 and adjacent in current_part_choices:
-                    current_part_choices.remove(adjacent)
-
-                # Remove the part itself from it's neighbor choices
-                if part in current_part_choices:
-                    current_part_choices.remove(part)
-                result[metadata.orientation].append(current_part_choices)
-        return result
-
-
     def __getitem__(self, index):
         example = self.get_pair_example_by_index(index)
         example['burnt'] = self.burn_image(example['real'])
@@ -198,10 +141,6 @@ class VirtualPuzzleDataset(BaseDataset):
 
     def determine_label(self):
         pass
-
-    def count_pair_examples_in_image(self, num_x_parts, num_y_parts):
-        num_true_examples = num_y_parts * (num_x_parts - 1)
-        return num_true_examples * (self.opt.num_false_examples + 1)
 
     def get_pair_example_by_index(self, index):
         relevant_image_index = bisect([x.num_examples_accumulated for x in self.images], index)
@@ -278,17 +217,7 @@ class VirtualPuzzleDataset(BaseDataset):
     def get_image_metadata(self, image_name, image=None):
         if image is None:
             image = self._get_image_by_name(image_name)
-        metadata = Namespace()
-        metadata.orientation = get_info_from_file_name(image_name, ORIENTATION_MAGIC)
-        assert metadata.orientation in [HORIZONTAL, VERTICAL], "Invalid orientation in image_name"
-        metadata.full_puzzle_name = image_name
-        if metadata.orientation == HORIZONTAL:
-            metadata.num_x_parts = image.num_x_parts
-            metadata.num_y_parts = image.num_y_parts
-        elif metadata.orientation == VERTICAL:
-            metadata.num_x_parts = image.num_y_parts
-            metadata.num_y_parts = image.num_x_parts
-        return metadata
+        return image.get_metadata(image_name)
 
     def _get_image_by_name(self, path):
         horizontal_path = set_orientation_in_name(path, HORIZONTAL)
@@ -303,6 +232,85 @@ class VirtualPuzzleDataset(BaseDataset):
         example = self.get_pair_example_by_name(image_name, part1, part2)
         real_pair = example['real']
         return tensor2im(torch.unzsqueeze(real_pair, 0))
+
+class VirtualImage():
+    def __init__(self, path, opt, num_examples_accumulated):
+        self.image_dir = os.path.dirname(path)
+        self.name_horizontal, self.image_extension = os.path.splitext(os.path.basename(path))
+        self.name_vertical = set_orientation_in_name(self.name_horizontal, VERTICAL)
+
+        self.horizontal = VirtualPuzzleDataset.get_real_image(os.path.join(
+            self.image_dir,
+            self.name_horizontal + self.image_extension))
+        self.vertical = self.horizontal.transpose(2, 1).flip(1)
+        _, height, width = self.horizontal.shape
+
+        assert height % opt.part_size == 0 and width % opt.part_size == 0, \
+            "Image ({0}x{1} wasn't cropped to be a multiple of 'part_size'({2})".format(height, width,
+                                                                                        opt.part_size)
+        self.num_x_parts = int(width / opt.part_size)
+        self.num_y_parts = int(height / opt.part_size)
+        self.num_horizontal_examples = self.count_pair_examples_in_image(self.num_x_parts,
+                                                                         self.num_y_parts,
+                                                                         opt.num_false_examples)
+        # x and y are reversed in vertical
+        self.num_vertical_examples = self.count_pair_examples_in_image(self.num_y_parts,
+                                                                       self.num_x_parts,
+                                                                       opt.num_false_examples)
+        self.num_examples = self.num_horizontal_examples + self.num_vertical_examples
+
+        self.num_examples_accumulated = self.num_examples + num_examples_accumulated
+        self.neighbor_choices = self.get_neighbor_choices(opt)
+
+    def get_neighbor_choices(self, opt):
+        num_parts = self.num_x_parts * self.num_y_parts
+        if opt.max_neighbor_rank <= 1:
+            all_choices = [range(num_parts) for part in range(num_parts)]
+            return {HORIZONTAL: all_choices, VERTICAL: all_choices}
+
+        puzzle_name = get_info_from_file_name(self.name_horizontal, NAME_MAGIC)
+        original_diff_matrix3d = parse_3d_numpy_array_from_json(get_java_diff_file(puzzle_name,
+                                                                                   burn_extent='0',
+                                                                                   part_size=opt.part_size))
+        result = {HORIZONTAL: [], VERTICAL: []}
+        for name in [self.name_horizontal, self.name_vertical]:
+            metadata = self.get_metadata(name)
+            direction_index = convert_orientation_to_index(metadata.orientation)
+            diff_matrix2d = original_diff_matrix3d[direction_index, :, :]
+            for part in range(num_parts):
+                current_part_choices = [part for (part, score) in
+                                        get_top_k_neighbors(part, diff_matrix2d, metadata,
+                                                            opt.max_neighbor_rank, reverse=False)]
+                adjacent = part + 1
+
+                # Remove true neighbor from that part's false neighbor choices (if exists)
+                if adjacent % metadata.num_x_parts != 0 and adjacent in current_part_choices:
+                    current_part_choices.remove(adjacent)
+
+                # Remove the part itself from it's neighbor choices
+                if part in current_part_choices:
+                    current_part_choices.remove(part)
+                result[metadata.orientation].append(current_part_choices)
+        return result
+
+    def get_metadata(self, image_name):
+        metadata = Namespace()
+        metadata.orientation = get_info_from_file_name(image_name, ORIENTATION_MAGIC)
+        assert metadata.orientation in [HORIZONTAL, VERTICAL], "Invalid orientation in image_name"
+        metadata.full_puzzle_name = image_name
+        if metadata.orientation == HORIZONTAL:
+            metadata.num_x_parts = self.num_x_parts
+            metadata.num_y_parts = self.num_y_parts
+        elif metadata.orientation == VERTICAL:
+            metadata.num_x_parts = self.num_y_parts
+            metadata.num_y_parts = self.num_x_parts
+        return metadata
+
+    @staticmethod
+    def count_pair_examples_in_image(num_x_parts, num_y_parts, num_false_examples):
+        num_true_examples = num_y_parts * (num_x_parts - 1)
+        return num_true_examples * (num_false_examples + 1)
+
 
 
 
