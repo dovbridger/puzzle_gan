@@ -62,20 +62,20 @@ class TestCompareModel(BaseModel):
             # fist iteration
             if real_in_generated_window is None:
                 # Create ground truth window for loss calulation in ann models
-                real_in_generated_window = self.real[:, :, :,
-                                           net.generated_columns_start:net.generated_columns_end]
+                real_in_generated_window = self.real[:, :, self.opt.burn_extent: -self.opt.burn_extent,
+                                                     net.generated_columns_start:net.generated_columns_end]
                 if hasattr(self, 'fake_old_inpainting'):
                 # Create the fake window for the old inpainting
-                    fake_in_generated_window = self.fake_old_inpainting[:, :, :,
-                                               net.generated_columns_start:net.generated_columns_end]
+                    fake_in_generated_window = self.fake_old_inpainting[:, :, self.opt.burn_extent: -self.opt.burn_extent,
+                                                                        net.generated_columns_start:net.generated_columns_end]
                     # Calculate old inpainting loss
                     setattr(self, 'loss_' + FAKE_NAME + "_" + OLD_INPAINTING_NAME,
                             self.L1_loss(fake_in_generated_window, real_in_generated_window))
             current_fake = net(self.burnt)
             image_attribute_name = FAKE_NAME + "_" + generator_name
             setattr(self, image_attribute_name, current_fake)
-            fake_in_generated_window = current_fake[:, :, :,
-                                       net.generated_columns_start:net.generated_columns_end]
+            fake_in_generated_window = current_fake[:, :, self.opt.burn_extent: -self.opt.burn_extent,
+                                                    net.generated_columns_start:net.generated_columns_end]
             current_loss = self.L1_loss(fake_in_generated_window, real_in_generated_window)
             setattr(self, 'loss_' + image_attribute_name, current_loss)
 
