@@ -82,16 +82,16 @@ class PostGanVirtualModel(BaseModel):
         self.fake = self.netG(self.burnt)
 
         if not self.opt.isTrain:
-            self.probability = self.netD(get_discriminator_input(self.opt, self.burnt, self.fake))
+            self.probability = self.netD(get_discriminator_input(self.opt, self.fake))
 
     def backward(self):
         # Real
-        discriminator_real_input = get_discriminator_input(self.opt, self.burnt, self.real)
+        discriminator_real_input = get_discriminator_input(self.opt, self.real)
         prediction_real = self.netD(discriminator_real_input)
         self.loss_D_real = self.criterionGAN(prediction_real, self.label)
 
         # Fake
-        discriminator_fake_input = get_discriminator_input(self.opt, self.burnt, self.fake)
+        discriminator_fake_input = get_discriminator_input(self.opt, self.fake)
         # stop backprop to the generator by detaching 'discriminator_fake_input'
         prediction_fake = self.netD(discriminator_fake_input.detach())
         self.loss_D_fake = self.criterionGAN(prediction_fake, self.label)

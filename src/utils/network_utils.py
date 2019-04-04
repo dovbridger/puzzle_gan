@@ -2,8 +2,8 @@ import torch
 import os.path
 
 
-def get_discriminator_input(opt, burnt_image, image):
-    result = image[:, opt.burn_extent: -opt.burn_extent, opt.burn_extent: -opt.burn_extent]
+def get_discriminator_input(opt, image):
+    result = image[:, :, opt.burn_extent: -opt.burn_extent, opt.burn_extent: -opt.burn_extent]
     return crop_tensor_width(result, get_centered_window_indexes(opt.fineSize[1], opt.discriminator_window))
 
 
