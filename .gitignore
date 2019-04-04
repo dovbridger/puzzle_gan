@@ -1,2 +1,5 @@
-*.pyc
-*.bat
+**/*.pyc
+**/*.bat
+venv/**
+.idea/**
+
