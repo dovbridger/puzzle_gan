@@ -17,6 +17,8 @@ def get_centered_window_indexes(initial_size, required_window_size):
     window_end = window_start + required_window_size
     return (window_start, window_end)
 
+def get_generator_mask(opt):
+
 
 def get_network_file_name(which_epoch, name):
     return'%s_net_%s.pth' % (which_epoch, name)
