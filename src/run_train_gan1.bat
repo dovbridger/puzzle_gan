@@ -1,1 +1,0 @@
-python train.py --dataset_name virtual_puzzle --model puzzle_gan --name batch2_burn2_dw64_N --burn_extent 2 --dataroot ../../puzzle_gan_data/datasets/virtual_puzzle_parts_big --niter 52 --niter_decay 0 --generator_window 4 --discriminator_window 64 --display_id -1 --save_epoch_freq 4 --batchSize 2 --dataset_mean [0.4509,0.4372,0.4059] --dataset_std [0.2802,0.2671,0.2908]
