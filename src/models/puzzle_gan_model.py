@@ -92,8 +92,10 @@ class PuzzleGanModel(BaseModel):
         self.loss_G_GAN = self.criterionGAN(pred_fake, True)
 
         # Second, G(burnt) = real
-        fake_in_generated_window = self.fake[:, :, :, self.netG.generated_columns_start:self.netG.generated_columns_end]
-        real_in_generated_window = self.real[:, :, :, self.netG.generated_columns_start:self.netG.generated_columns_end]
+        fake_in_generated_window = self.fake[:, :, self.opt.burn_extent: -self.opt.burn_extent,
+                                             self.netG.generated_columns_start:self.netG.generated_columns_end]
+        real_in_generated_window = self.real[:, :, self.opt.burn_extent: -self.opt.burn_extent,
+                                             self.netG.generated_columns_start:self.netG.generated_columns_end]
         self.loss_G_L1 = self.criterionL1(fake_in_generated_window, real_in_generated_window) * self.opt.lambda_L1
 
         self.loss_G = self.loss_G_GAN + self.loss_G_L1

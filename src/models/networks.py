@@ -85,7 +85,8 @@ class UnetGenerator(nn.Module):
     64 x 128 x 3 at the end of the decoder
     Skip connections between encoder and decoder layers of same size are implemented in the 'forward' method
     '''
-    def __init__(self, input_nc, output_nc, generator_window, input_width, ngf=64, norm_layer=nn.BatchNorm2d, kernel_size=4):
+    def __init__(self, input_nc, output_nc, generator_window, input_width, ngf=64, norm_layer=nn.BatchNorm2d,
+                 kernel_size=4, burn_extent=0):
         super(UnetGenerator, self).__init__()
         self.generated_columns_start, self.generated_columns_end = get_centered_window_indexes(input_width,
                                                                                                generator_window)
@@ -148,7 +149,7 @@ class UnetGenerator(nn.Module):
         self.layer1_u_out = self.layer1_u(in_1)
         in_0 = torch.cat([self.layer1_u_out, self.layer0_d_out], 1)
         self.layer0_u_out = self.layer0_u(in_0)
-
+        #TODO: fix this to include burn extent
         self.final_output = torch.cat([input[:, :, :, 0:self.generated_columns_start],
                                        self.layer0_u_out[:, :, :, self.generated_columns_start:self.generated_columns_end],
                                        input[:, :, :, self.generated_columns_end:]], 3)
@@ -320,14 +321,13 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
 
 def get_generator(opt):
     netG = UnetGenerator(opt.input_nc, opt.output_nc, opt.generator_window, opt.fineSize[1],
-                         ngf=opt.ngf, norm_layer=get_norm_layer(opt.norm), kernel_size=opt.kernel_size)
+                         ngf=opt.ngf, norm_layer=get_norm_layer(opt.norm), kernel_size=opt.kernel_size,
+                         burn_extent=opt.burn_extent)
     return init_net(netG, opt.init_type, opt.init_gain, opt.gpu_ids)
 
 
 def get_discriminator(opt):
     discriminator_input_nc = opt.output_nc
-    if opt.provide_burnt:
-        discriminator_input_nc += opt.input_nc
     netD = NLayerDiscriminator(discriminator_input_nc, opt.ndf,
                                n_layers=3, norm_layer=get_norm_layer(opt.norm), use_sigmoid=opt.no_lsgan)
     return init_net(netD, opt.init_type, opt.init_gain, opt.gpu_ids)
