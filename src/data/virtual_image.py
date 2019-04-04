@@ -6,7 +6,7 @@ from puzzle.puzzle_utils import set_orientation_in_name, get_info_from_file_name
 from puzzle.java_utils import get_top_k_neighbors, get_java_diff_file, parse_3d_numpy_array_from_json,\
     convert_orientation_to_index
 from globals import HORIZONTAL, VERTICAL, NAME_MAGIC, ORIENTATION_MAGIC
-from data.virtual_puzzle_dataset import VirtualPuzzleDataset
+
 class VirtualImage:
     def __init__(self, path, opt, num_examples_accumulated):
         self.image_dir = os.path.dirname(path)
@@ -14,13 +14,13 @@ class VirtualImage:
         self.name_vertical = set_orientation_in_name(self.name_horizontal, VERTICAL)
         self.opt = opt
 
+        from data.virtual_puzzle_dataset import VirtualPuzzleDataset
         self.horizontal = VirtualPuzzleDataset.get_real_image(os.path.join(
             self.image_dir,
             self.name_horizontal + self.image_extension))
         self.vertical = self.horizontal.transpose(2, 1).flip(1)
-        self.horizontal_parts = self.get_parts_array(self.horizontal)
         _, height, width = self.horizontal.shape
-        assert height % opt.part_size == 0 and width % self.part_size == 0, \
+        assert height % opt.part_size == 0 and width % opt.part_size == 0, \
             "Image ({0}x{1} wasn't cropped to be a multiple of 'part_size'({2})".format(height, width,
                                                                                         opt.part_size)
         self.num_x_parts = int(width / opt.part_size)
@@ -35,12 +35,13 @@ class VirtualImage:
         self.num_examples = self.num_horizontal_examples + self.num_vertical_examples
 
         self.num_examples_accumulated = self.num_examples + num_examples_accumulated
-        self.neighbor_choices = self.get_neighbor_choices(opt)
+        self.neighbor_choices = self.get_neighbor_choices()
 
     def get_neighbor_choices(self):
         num_parts = self.num_x_parts * self.num_y_parts
+        parts_range = range(num_parts)
         if self.opt.max_neighbor_rank <= 1:
-            all_choices = [range(num_parts) for part in range(num_parts)]
+            all_choices = [parts_range for part in range(num_parts)]
             return {HORIZONTAL: all_choices, VERTICAL: all_choices}
 
         puzzle_name = get_info_from_file_name(self.name_horizontal, NAME_MAGIC)
@@ -105,14 +106,14 @@ class VirtualImage:
 
     def get_parts_array(self, image_array, num_columns):
         num_parts = self.num_x_parts * self.num_y_parts
-        all_parts = tuple(self.crop_part_from_image(image_array, part, num_columns).unsqueeze(0)
+        all_parts = tuple(self.crop_part_from_image(image_array, num_columns, part).unsqueeze(0)
                           for part in range(num_parts))
         return torch.cat(all_parts, dim=0)
 
     def get_part_from_image(self, part, orientation):
         return self.individual_parts[orientation][part, :, :, :]
 
-    def get_pair_example(self, orientation, relative_index):
+    def get_pair_example(self, orientation, relative_index, neighbor_choices_limit):
         num_columns = self.num_x_parts if orientation is HORIZONTAL else self.num_y_parts
         neighbor_choices = self.neighbor_choices[orientation]
         # The part that corresponds with relative_index
@@ -129,7 +130,7 @@ class VirtualImage:
             label = 0
             while (part2 == part1 + 1 or part2 == part1):
                 # Randomly select a part until it is valid
-                part2 = choice(neighbor_choices[part1][:self.neighbor_choices_limit])
+                 part2 = choice(neighbor_choices[part1][:neighbor_choices_limit])
  #               print("chose {0} for {1] from {1}".format(part2, part1, neighbor_choices[part1][:self.neighbor_choices_limit]))
         pair_tensor = self.crop_pair_from_image(part1, part2, orientation)
         return {'part1': part1, 'part2': part2, 'label': label, 'real': pair_tensor}

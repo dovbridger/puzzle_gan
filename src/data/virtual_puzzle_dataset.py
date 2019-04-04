@@ -21,6 +21,7 @@ SAVE_CROPPED_IMAGES = False
 CROPPED_IMAGES_FOLDER = 'cropped'
 
 class VirtualPuzzleDataset(BaseDataset):
+    transform = None
 
     @staticmethod
     def modify_commandline_options(parser, is_train):
@@ -48,7 +49,7 @@ class VirtualPuzzleDataset(BaseDataset):
 
         # Paths of the full puzzle images
         self.paths = sorted(make_dataset(self.phase_folder))
-        self.transform = get_transform(opt)
+        VirtualPuzzleDataset.transform = get_transform(opt)
         print("Loading base images")
         self.load_base_images()
         print("Base images are loaded")
@@ -121,10 +122,11 @@ class VirtualPuzzleDataset(BaseDataset):
         else:
             return self.images[-1].num_examples_accumulated
 
-    def get_real_image(self, path):
+    @staticmethod
+    def get_real_image(path):
         original_img = Image.open(path).convert('RGB')
         # Perform the transformations
-        real_image = self.transform(original_img)
+        real_image = VirtualPuzzleDataset.transform(original_img)
 
         return real_image
 
@@ -155,11 +157,11 @@ class VirtualPuzzleDataset(BaseDataset):
 
     def get_pair_example_by_relative_index(self, image, relative_index):
         if relative_index < image.num_horizontal_examples:
-            example = image.get_pair_example(HORIZONTAL, relative_index)
+            example = image.get_pair_example(HORIZONTAL, relative_index, self.neighbor_choices_limit)
             image_name = image.name_horizontal
         elif relative_index < image.num_examples:
             relative_index -= image.num_horizontal_examples
-            example = self.get_pair_example(VERTICAL, relative_index)
+            example = image.get_pair_example(VERTICAL, relative_index, self.neighbor_choices_limit)
             image_name = image.name_vertical
         else:
             raise IndexError("Invalid index: {0}".format(relative_index))
