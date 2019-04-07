@@ -85,6 +85,8 @@ class BaseOptions():
         parser.add_argument('--use_specific_normalization', action='store_true',
                             help='When normalizing use datset mean and STD'
                                  'as specified in global variables "DATASET_MEAN", "DATASET_STD"')
+        parser.add_argument('--continuous_labels', action='store_true',
+                            help='Use continues label values between 0 and 1 according to original confidence')
         self.initialized = True
         return parser
 
