@@ -139,7 +139,10 @@ class VirtualImage:
         if relative_index % (VirtualImage.opt.num_false_examples + 1) == 0:
             # A true example
             label = self.resolve_true_neighbor_label(part1, orientation)
+<<<<<<< HEAD
             print(label)
+=======
+>>>>>>> ff608b1bd915c63598da52f6d4d8abdcc0587b40
         else:
             label = 0
             while (part2 == part1 + 1 or part2 == part1):
