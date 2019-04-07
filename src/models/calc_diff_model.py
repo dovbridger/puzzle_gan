@@ -46,7 +46,7 @@ class CalcDiffModel(BaseModel):
 
     def forward(self):
         self.fake = self.netG(self.burnt)
-        self.prediction = self.netD(get_discriminator_input(self.opt, self.burnt, self.fake))
+        self.prediction = self.netD(get_discriminator_input(self.opt, self.fake))
 
     def predict_and_store(self):
         self.test()

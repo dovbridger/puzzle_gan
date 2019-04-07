@@ -70,13 +70,13 @@ class PuzzleGanModel(BaseModel):
         self.fake = self.netG(self.burnt)
 
     def backward_D(self):
-        discriminator_fake_input = self.burnt_and_fake_pool.query(get_discriminator_input(self.opt, self.burnt, self.fake))
+        discriminator_fake_input = self.burnt_and_fake_pool.query(get_discriminator_input(self.opt, self.fake))
         # stop backprop to the generator by detaching 'discriminator_fake_input'
         pred_fake = self.netD(discriminator_fake_input.detach())
         self.loss_D_fake = self.criterionGAN(pred_fake, False)
 
         # Real
-        discriminator_real_input = get_discriminator_input(self.opt, self.burnt, self.real)
+        discriminator_real_input = get_discriminator_input(self.opt, self.real)
 
         pred_real = self.netD(discriminator_real_input)
         self.loss_D_real = self.criterionGAN(pred_real, True)
@@ -87,13 +87,15 @@ class PuzzleGanModel(BaseModel):
 
     def backward_G(self):
         # First, G(burnt) should fool the discriminator
-        discriminator_fake_input = get_discriminator_input(self.opt, self.burnt, self.fake)
+        discriminator_fake_input = get_discriminator_input(self.opt, self.fake)
         pred_fake = self.netD(discriminator_fake_input)
         self.loss_G_GAN = self.criterionGAN(pred_fake, True)
 
         # Second, G(burnt) = real
-        fake_in_generated_window = self.fake[:, :, :, self.netG.generated_columns_start:self.netG.generated_columns_end]
-        real_in_generated_window = self.real[:, :, :, self.netG.generated_columns_start:self.netG.generated_columns_end]
+        fake_in_generated_window = self.fake[:, :, self.opt.burn_extent: -self.opt.burn_extent,
+                                             self.netG.generated_columns_start:self.netG.generated_columns_end]
+        real_in_generated_window = self.real[:, :, self.opt.burn_extent: -self.opt.burn_extent,
+                                             self.netG.generated_columns_start:self.netG.generated_columns_end]
         self.loss_G_L1 = self.criterionL1(fake_in_generated_window, real_in_generated_window) * self.opt.lambda_L1
 
         self.loss_G = self.loss_G_GAN + self.loss_G_L1

@@ -61,8 +61,6 @@ class BaseOptions():
                             help='Width of the centered window that will be fed to the discriminator')
         parser.add_argument('--generator_window', type=int, default=self.fine_size[1],
                             help='Width of the centered window where the generated pixels will remain, the rest will be ignored')
-        parser.add_argument('--provide_burnt', action='store_true',
-                            help='Provide the burnt image as input for the discriminator along with the (fake / real) image')
         # How many pixels will be missing from each edge of a puzzle part
         # (The hole between two parts will be 2 * burn_extent)
         parser.add_argument('--burn_extent', type=int, default=2,
