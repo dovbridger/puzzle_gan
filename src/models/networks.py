@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import functools
 from torch.optim import lr_scheduler
-from utils.network_utils import get_generator_mask
+from utils.network_utils import get_generator_mask, get_centered_window_indexes
 
 
 class UnetLeftBlock(nn.Module):
@@ -88,7 +88,10 @@ class UnetGenerator(nn.Module):
     def __init__(self, input_nc, output_nc, generator_window, input_size, ngf=64, norm_layer=nn.BatchNorm2d,
                  kernel_size=4, burn_extent=0):
         super(UnetGenerator, self).__init__()
-        self.generated_window_mask = get_generator_mask(input_size, generator_window, burn_extent)
+        self.generated_columns_start, self.generated_columns_end = get_centered_window_indexes(input_size[1], generator_window)
+        self.generated_window_mask = get_generator_mask(input_size,
+                                                        (self.generated_columns_start, self.generated_columns_end),
+                                                        burn_extent)
 
         # 64 x 128 in -> 32 x 64 out
         self.layer0_d = UnetLeftBlock(input_nc, ngf, norm_layer=norm_layer, kernel_size=kernel_size)
