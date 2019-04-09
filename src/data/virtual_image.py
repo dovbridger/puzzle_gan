@@ -161,4 +161,4 @@ class VirtualImage:
 
     @staticmethod
     def get_label_from_confidence(confidence_value):
-        return min(1, 2 * max(0, confidence_value))
+        return min(1, 4 * max(0, confidence_value))
