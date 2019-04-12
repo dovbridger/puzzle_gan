@@ -20,8 +20,8 @@ class BaseOptions():
         model = 'puzzle_gan'
         task = 'puzzle_try'
         experiment_name = 'no_burnt'
-        loadSize = (64, 128)
-        self.fine_size = (64, 128)
+        loadSize = (384, 384)
+        self.fine_size = (128, 256)
         data_root = os.path.join(self.project_root, 'datasets', 'puzzle_parts')
         batchSize = 64
         dataset_name = 'puzzle'

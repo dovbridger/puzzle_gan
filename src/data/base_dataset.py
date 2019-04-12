@@ -57,6 +57,10 @@ def get_transform(opt):
     elif opt.resize_or_crop == 'none':
         pass
 
+    elif opt.resize_or_crop == 'scale_ar_crop':
+        transform_list.append(transforms.Lambda(
+            lambda image: __down_scale_small_dim(image, opt.loadSize[1])))
+        transform_list.append(transforms.CenterCrop(opt.loadSize[1]))
     elif opt.resize_or_crop == 'crop_to_part_size':
         transform_list.append(transforms.Lambda(
             lambda image: __inffer_crop_transform_from_part_size(image, opt.part_size)))
@@ -123,6 +127,18 @@ def __scale_width(img, target_width):
         __print_size_warning(target_width, target_height, w, h)
 
     return img.resize((w, h), Image.BICUBIC)
+
+def __down_scale_small_dim(img, target_dim_size):
+    original_size = img.size
+    target_size = [0, 0]
+    small_dim = 0 if original_size[0] < original_size[1] else 1
+    large_dim = small_dim ^ 1
+    if original_size[small_dim] == target_dim_size:
+        return img
+    target_size[small_dim] = target_dim_size
+    target_size[large_dim] = int(target_dim_size * original_size[large_dim] / original_size[small_dim])
+
+    return img.resize(target_size, Image.BICUBIC)
 
 
 def __print_size_warning(ow, oh, w, h):
