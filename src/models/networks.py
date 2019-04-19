@@ -88,6 +88,7 @@ class UnetGenerator(nn.Module):
     def __init__(self, input_nc, output_nc, generator_window, input_size, ngf=64, norm_layer=nn.BatchNorm2d,
                  kernel_size=4, burn_extent=0):
         super(UnetGenerator, self).__init__()
+        self.has_extra_layer = input_size[1] >= 256
         self.generated_columns_start, self.generated_columns_end = get_centered_window_indexes(input_size[1], generator_window)
         self.generated_window_mask = get_generator_mask(input_size,
                                                         (self.generated_columns_start, self.generated_columns_end),
@@ -104,6 +105,9 @@ class UnetGenerator(nn.Module):
         # 4 x 8 in -> 2 x 4 out
         self.layer4_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
         # 2 x 4 in -> 1 x 2 out
+        if self.has_extra_layer:
+            self.layer5_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
+            self.layer5_u = UnetRightBlock(ngf*8*2, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
         self.middle_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size, innermost=True)
         # 1 x 2 in -> 2 x 4 out
         self.middle_u = UnetRightBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
@@ -131,13 +135,22 @@ class UnetGenerator(nn.Module):
         self.layer2_d_out = self.layer2_d(self.layer1_d_out)
         self.layer3_d_out = self.layer3_d(self.layer2_d_out)
         self.layer4_d_out = self.layer4_d(self.layer3_d_out)
-
+        if self.has_extra_layer:
+            self.layer5_d_out = self.layer5_d(self.layer4_d_out)
+            self.middle_d_in = self.layer5_d_out
         # middle_d is the last layer of the encoder and middle u is the first layer of the decoder that follows
-        self.middle_d_in = self.layer4_d_out
+        else:
+            self.middle_d_in = self.layer4_d_out
         self.middle_d_out = self.middle_d(self.middle_d_in)
         self.middle_u_out = self.middle_u(self.middle_d_out)
-        # Input to decoder layer 4, before concatenating skip connection
-        self.in_layer4_u = self.middle_u_out
+
+        if self.has_extra_layer:
+            in_5 = torch.cat([self.middle_u_out, self.layer5_d_out], 1)
+            self.in_layer_4_u = self.layer5_u(in_5)
+        else:
+            # Input to decoder layer 4, before concatenating skip connection
+            self.in_layer4_u = self.middle_u_out
+
 
         # in_x is the input to layer 'x' of the decoder (counting from the end) after concatenating the skip connection
         # From the output of layer 'x' of the encoder
