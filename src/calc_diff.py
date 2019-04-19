@@ -38,7 +38,7 @@ def calc_diff():
     opt = TestOptions().parse()
     opt.nThreads = 1   # test code only supports nThreads = 1
     opt.batchSize = 1
-    for puzzle_name in [str(x) + 'b' for x in range(1, 21)]:
+    for puzzle_name in [str(x) + 'met' for x in range(1, 2001)]:
         create_diff_matrix_for_puzzle(puzzle_name, opt)
 
 
