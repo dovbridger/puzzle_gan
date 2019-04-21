@@ -93,7 +93,6 @@ class UnetGenerator(nn.Module):
         self.generated_window_mask = get_generator_mask(input_size,
                                                         (self.generated_columns_start, self.generated_columns_end),
                                                         burn_extent)
-
         # 64 x 128 in -> 32 x 64 out
         self.layer0_d = UnetLeftBlock(input_nc, ngf, norm_layer=norm_layer, kernel_size=kernel_size)
         # 32 x 64 in -> 16 x 32 out
@@ -146,7 +145,7 @@ class UnetGenerator(nn.Module):
 
         if self.has_extra_layer:
             in_5 = torch.cat([self.middle_u_out, self.layer5_d_out], 1)
-            self.in_layer_4_u = self.layer5_u(in_5)
+            self.in_layer4_u = self.layer5_u(in_5)
         else:
             # Input to decoder layer 4, before concatenating skip connection
             self.in_layer4_u = self.middle_u_out
@@ -341,6 +340,7 @@ def get_generator(opt):
 
 def get_discriminator(opt):
     discriminator_input_nc = opt.output_nc
+    n_layers = 4 if opt.fineSize[1] >= 256 else 3
     netD = NLayerDiscriminator(discriminator_input_nc, opt.ndf,
-                               n_layers=3, norm_layer=get_norm_layer(opt.norm), use_sigmoid=opt.no_lsgan)
+                               n_layers=n_layers, norm_layer=get_norm_layer(opt.norm), use_sigmoid=opt.no_lsgan)
     return init_net(netD, opt.init_type, opt.init_gain, opt.gpu_ids)
