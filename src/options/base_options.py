@@ -20,8 +20,8 @@ class BaseOptions():
         model = 'puzzle_gan'
         task = 'puzzle_try'
         experiment_name = 'no_burnt'
-        loadSize = (64, 128)
-        self.fine_size = (64, 128)
+        loadSize = (384, 384)
+        self.fine_size = (128, 256)
         data_root = os.path.join(self.project_root, 'datasets', 'puzzle_parts')
         batchSize = 64
         dataset_name = 'puzzle'
@@ -85,6 +85,8 @@ class BaseOptions():
         parser.add_argument('--use_specific_normalization', action='store_true',
                             help='When normalizing use datset mean and STD'
                                  'as specified in global variables "DATASET_MEAN", "DATASET_STD"')
+        parser.add_argument('--continuous_labels', action='store_true',
+                            help='Use continues label values between 0 and 1 according to original confidence')
         self.initialized = True
         return parser
 

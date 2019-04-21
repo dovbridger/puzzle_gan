@@ -4,7 +4,7 @@ from random import choice
 from argparse import Namespace
 from puzzle.puzzle_utils import set_orientation_in_name, get_info_from_file_name
 from puzzle.java_utils import get_top_k_neighbors, get_java_diff_file, parse_3d_numpy_array_from_json,\
-    convert_orientation_to_index
+    convert_orientation_to_index, calc_confidence, convert_vertical_to_horizontal_part_number
 from globals import HORIZONTAL, VERTICAL, NAME_MAGIC, ORIENTATION_MAGIC
 
 class VirtualImage:
@@ -42,19 +42,26 @@ class VirtualImage:
         self.num_examples = self.num_horizontal_examples + self.num_vertical_examples
 
         self.num_examples_accumulated = self.num_examples + num_examples_accumulated
-        self.neighbor_choices = self.get_neighbor_choices()
+        puzzle_name = get_info_from_file_name(self.name_horizontal, NAME_MAGIC)
+        
+        #TODO: fix ugly code
+        if VirtualImage.opt.continuous_labels or VirtualImage.opt.max_neighbor_rank > 1:
+            # diff matrix is needed
+            original_diff_matrix3d = parse_3d_numpy_array_from_json(get_java_diff_file(puzzle_name,
+                                                                                       burn_extent='0',
+                                                                                       part_size=VirtualImage.opt.part_size))
+            self.original_confidence_matrix3d = calc_confidence(original_diff_matrix3d)
+        else:
+            original_diff_matrix3d = None
+        self.neighbor_choices = self.get_neighbor_choices(original_diff_matrix3d)
 
-    def get_neighbor_choices(self):
+    def get_neighbor_choices(self, original_diff_matrix3d):
         num_parts = self.num_x_parts * self.num_y_parts
         parts_range = range(num_parts)
         if VirtualImage.opt.max_neighbor_rank <= 1:
             all_choices = [parts_range for part in range(num_parts)]
             return {HORIZONTAL: all_choices, VERTICAL: all_choices}
 
-        puzzle_name = get_info_from_file_name(self.name_horizontal, NAME_MAGIC)
-        original_diff_matrix3d = parse_3d_numpy_array_from_json(get_java_diff_file(puzzle_name,
-                                                                                   burn_extent='0',
-                                                                                   part_size=VirtualImage.opt.part_size))
         result = {HORIZONTAL: [], VERTICAL: []}
         for name in [self.name_horizontal, self.name_vertical]:
             metadata = self.get_metadata(name)
@@ -131,12 +138,27 @@ class VirtualImage:
         part2 = part1 + 1
         if relative_index % (VirtualImage.opt.num_false_examples + 1) == 0:
             # A true example
-            label = 1
+            label = self.resolve_true_neighbor_label(part1, orientation)
+            #print(label)
         else:
             label = 0
             while (part2 == part1 + 1 or part2 == part1):
-                # Randomly select a part until it is valid
                  part2 = choice(neighbor_choices[part1][:neighbor_choices_limit])
- #               print("chose {0} for {1] from {1}".format(part2, part1, neighbor_choices[part1][:self.neighbor_choices_limit]))
         pair_tensor = self.crop_pair_from_image(part1, part2, orientation)
         return {'part1': part1, 'part2': part2, 'label': label, 'real': pair_tensor}
+
+    def resolve_true_neighbor_label(self, part1, orientation):
+        if not VirtualImage.opt.continuous_labels:
+            return 1
+        if orientation == VERTICAL:
+            # The fields of self refer to the horizontal image and need to be flipped when converting a vertical part
+            part1 = convert_vertical_to_horizontal_part_number(part1,
+                                                               num_x_parts=self.num_y_parts,
+                                                               num_y_parts=self.num_x_parts)
+        direction_index = convert_orientation_to_index(orientation)
+        confidence_value = self.original_confidence_matrix3d[direction_index][part1][part1 + 1]
+        return self.get_label_from_confidence(confidence_value)
+
+    @staticmethod
+    def get_label_from_confidence(confidence_value):
+        return min(1, 4 * max(0, confidence_value))
