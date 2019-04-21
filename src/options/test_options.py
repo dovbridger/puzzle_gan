@@ -24,8 +24,6 @@ class TestOptions(BaseOptions):
                             help="Indentifyer for this specific experiment. Usefull if you don't want to override a previous one")
         # Deactivate visdom server
         parser.set_defaults(display_id=-1)
-        # To avoid cropping, the loadSize should be the same as fineSize
-        parser.set_defaults(loadSize=parser.get_default('fineSize'))
         parser.set_defaults(only_crop=0)
         parser.set_defaults(no_flip=True)
         
