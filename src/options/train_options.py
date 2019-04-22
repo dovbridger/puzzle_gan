@@ -30,5 +30,7 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau')
         parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
         parser.add_argument('--only_crop', type=int, default=int(only_crop), help='if there is no need to resize set to 1 => just crop')
+        parser.add_argument('--dlr', type=float, default=1,
+                            help='fraction of the learning rate for discriminator')
         self.isTrain = True
         return parser

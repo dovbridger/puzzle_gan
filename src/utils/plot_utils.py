@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+PLOT_LOC = 0
+
 def plot_images(ims, figsize=(12, 6), rows=None, interp=False, titles=None, colors=None, output_file_name=None):
     if rows == None:
         rows = int(np.sqrt(len(ims)))
@@ -41,17 +43,17 @@ def listify_input(f):
 
 
 @listify_input
-def plot_histograms(data, num_bins=20, titles=None, colors=None, labels=None, output_file_name=None):
+def plot_histograms(data, num_bins=20, titles=None, colors=None, labels=None, output_file_name=None, loc=PLOT_LOC):
         def hist_on_axes(axes, data, color=None, label=None, **kwargs):
             axes.hist(data, bins=num_bins, color=color, histtype='step', label=label)
 
         general_plot(data, hist_on_axes, configure_axes, titles=titles,
-                     labels=labels, colors=colors, output_file_name=output_file_name)
+                     labels=labels, colors=colors, output_file_name=output_file_name, loc=loc)
 
 
 @listify_input
 def plot_bars(data, titles=None, colors=None, labels=None, tick_labels=None, bar_width=0.4,
-              data_spacing=1.25, output_file_name=None):
+              data_spacing=1.25, output_file_name=None, loc=PLOT_LOC):
     def bars_on_axes(axes, specific_label_data, index=0, num_data_items=1,
                      x_positions=None, color=None, label=None, **kwargs):
         if x_positions is None:
@@ -64,7 +66,7 @@ def plot_bars(data, titles=None, colors=None, labels=None, tick_labels=None, bar
 
     general_plot(data, bars_on_axes, configure_axes, titles=titles,
                  labels=labels, colors=colors, tick_labels=tick_labels,
-                 bar_width=bar_width, output_file_name=output_file_name)
+                 bar_width=bar_width, output_file_name=output_file_name, loc=loc)
 
 
 def general_plot(data, plot_function, axes_configurator, output_file_name=None, **kwargs):
@@ -100,7 +102,8 @@ def general_plot(data, plot_function, axes_configurator, output_file_name=None, 
         plt.show()
 
 
-def configure_axes(index, axes, titles=None, tick_labels=None, bar_width=0.4, data_per_plot=1, **kwargs):
+def configure_axes(index, axes, titles=None, tick_labels=None, bar_width=0.4,
+                   data_per_plot=1, **kwargs):
     if titles is not None:
         axes[index].set(title=titles[index])
 
@@ -109,7 +112,7 @@ def configure_axes(index, axes, titles=None, tick_labels=None, bar_width=0.4, da
         axes[index].set_xticks((np.arange(len(tick_labels)) + 0.5) * tick_width)
         axes[index].set_xticklabels(tick_labels)
     if index == len(axes) - 1:
-        axes[index].legend(loc=0)
+        axes[index].legend(loc=kwargs['loc'])
 
 
 def print_loss_stats(loss_stats, output_file_name):
@@ -150,7 +153,7 @@ def _get_property(dictionary, property_name, index=None):
 
 
 @listify_input
-def plot_y(data, sort=False, titles=None, colors=None, labels=None, output_file_name=None):
+def plot_y(data, sort=False, titles=None, colors=None, labels=None, output_file_name=None, loc=PLOT_LOC):
     '''
     Plots xy plot where x is 0,1,2... and y is the data.
     :param data: data to be plotted, or a list of data to be plotted for comparison
@@ -164,7 +167,7 @@ def plot_y(data, sort=False, titles=None, colors=None, labels=None, output_file_
         axes.plot(data, color=color, label=label)
 
     general_plot(data, plot_on_axes, configure_axes, sort=sort, titles=titles, colors=colors, labels=labels,
-                 output_file_name=output_file_name)
+                 output_file_name=output_file_name, loc=loc)
 
 
 def _parse_loss_file(file_name):

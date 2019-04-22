@@ -337,9 +337,9 @@ def plot_true_false_score_historgrams(true_scores, false_scores, num_bins=10, ex
     false_scores = np.array(false_scores)
     for label, array in [('True', true_scores), ('False', false_scores)]:
         stats = "Size: {1}, Average: {2}, STD: {3}".format(label,
-                                                                             len(array),
-                                                                             round(array.mean(), 3),
-                                                                             round(array.std(), 3))
+                                                           len(array),
+                                                           round(array.mean(), 3),
+                                                           round(array.std(), 3))
         title = label + ' Probability Histogram (exclude threshold = ' + str(exclude_threshold[label]) +')\n' + stats
         plot_histograms([array], num_bins=num_bins,
                         titles=[title],
