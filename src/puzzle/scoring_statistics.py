@@ -265,9 +265,9 @@ def compare_best_buddies(diff_matrices, num_x_parts, num_y_parts, puzzle_descrip
     return data_to_plot
 
 
-def combine_all_diff_scores(model_names, correction_method='none', indexes=range(1, 21),
+def combine_all_diff_scores(model_names, puzzle_names=None, correction_method='none', indexes=range(1, 21),
                             use_log_diff=USE_LOG_DIFF, flatten_params=USE_FLATTEN):
-    puzzle_names = [str(x) + 'b' for x in indexes]
+
     all_scores = {'ranks': [], 'buddies': [], 'confidence': []}
     for puzzle_name in puzzle_names:
         print("Collecting scores for puzzle " + puzzle_name)
