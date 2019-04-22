@@ -72,7 +72,8 @@ class PostGanVirtualModel(BaseModel):
             self.loss_names = ['D', 'D_real', 'D_fake']
 
     def set_input(self, input):
-        self.real = input['real'].to(self.device)
+        if self.opt.fake_loss_weight < 1:
+            self.real = input['real'].to(self.device)
         self.burnt = input['burnt'].to(self.device)
         # Is also used in the loss calculation so needs to be on gpu
         self.label = input['label'].float().to(self.device)
@@ -86,9 +87,10 @@ class PostGanVirtualModel(BaseModel):
 
     def backward(self):
         # Real
-        discriminator_real_input = get_discriminator_input(self.opt, self.real)
-        prediction_real = self.netD(discriminator_real_input)
-        self.loss_D_real = self.criterionGAN(prediction_real, self.label)
+        if self.opt.fake_loss_weight < 1:
+            discriminator_real_input = get_discriminator_input(self.opt, self.real)
+            prediction_real = self.netD(discriminator_real_input)
+            self.loss_D_real = self.criterionGAN(prediction_real, self.label)
 
         # Fake
         discriminator_fake_input = get_discriminator_input(self.opt, self.fake)
@@ -97,7 +99,10 @@ class PostGanVirtualModel(BaseModel):
         self.loss_D_fake = self.criterionGAN(prediction_fake, self.label)
 
         # Combined loss
-        self.loss_D = self.loss_D_real * (1 - self.opt.fake_loss_weight) + self.loss_D_fake * self.opt.fake_loss_weight
+        if self.opt.fake_loss_weight < 1:
+            self.loss_D = self.loss_D_real * (1 - self.opt.fake_loss_weight) + self.loss_D_fake * self.opt.fake_loss_weight
+        else:
+            self.loss_D = self.loss_D_fake
         self.loss_D.backward()
 
     def optimize_parameters(self):
