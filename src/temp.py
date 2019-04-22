@@ -40,15 +40,15 @@ def plot_probability_histogram(model_name, puzzle_names):
 
 def main():
     test_files = listdir(LOCAL_TEST_PATH)
-    puzzle_names = [get_info_from_file_name(file, NAME_MAGIC) for file in test_files if file.endswith('.png')]
+    puzzle_names = [get_info_from_file_name(file, NAME_MAGIC) for file in test_files if file.endswith('.png') or file.endswith('.jpg')]
     print(puzzle_names)
     models_to_compare = ['Original',
                          'Perfect',
-                         'CalcProbabilityModel_g44_d20_b20',
-                         'CalcProbabilityModel_g44_d30_b20']
+                         'CalcProbabilityModel_g44_d25_b20_of',
+                         'CalcProbabilityModel_g44_d30_b20_of']
     #plot_probability_histogram(models_to_compare[2], puzzle_names=puzzle_names)
     #combine_all_diff_scores(model_names=models_to_compare, puzzle_names=puzzle_names, use_log_diff=True, flatten_params=['', '', '', '', '', ''])
-    save_diff_matrix_by_models(models_to_compare[2:], puzzle_names=puzzle_names)
+    save_diff_matrix_by_models(models_to_compare[2:3], puzzle_names=puzzle_names)
 
 
 if __name__ == '__main__':
