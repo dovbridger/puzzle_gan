@@ -43,7 +43,8 @@ class VirtualImage:
 
         self.num_examples_accumulated = self.num_examples + num_examples_accumulated
         puzzle_name = get_info_from_file_name(self.name_horizontal, NAME_MAGIC)
-
+        
+        #TODO: fix ugly code
         if VirtualImage.opt.continuous_labels or VirtualImage.opt.max_neighbor_rank > 1:
             # diff matrix is needed
             original_diff_matrix3d = parse_3d_numpy_array_from_json(get_java_diff_file(puzzle_name,
