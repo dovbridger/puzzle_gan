@@ -2,4 +2,5 @@
 **/*.bat
 venv/**
 .idea/**
+src/globals.py
 

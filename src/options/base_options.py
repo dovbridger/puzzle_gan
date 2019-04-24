@@ -5,6 +5,7 @@ import torch
 import models
 import data
 import os.path
+from globals import FINE_SIZE, LOAD_SIZE
 
 class BaseOptions():
     '''
@@ -20,14 +21,13 @@ class BaseOptions():
         model = 'puzzle_gan'
         task = 'puzzle_try'
         experiment_name = 'no_burnt'
-        loadSize = (64, 128)
-        self.fine_size = (64, 128)
+        self.fine_size = FINE_SIZE
         data_root = os.path.join(self.project_root, 'datasets', 'puzzle_parts')
-        batchSize = 64
+        batchSize = 1
         dataset_name = 'puzzle'
         parser.add_argument('--dataroot', type=str, default=data_root, help='path to images (should have subfolders train, validation, test)')
         parser.add_argument('--batchSize', type=int, default=batchSize, help='input batch size')
-        parser.add_argument('--loadSize', type=int, default=loadSize, help='scale images to this size')
+        parser.add_argument('--loadSize', type=int, default=LOAD_SIZE, help='scale images to this size')
         parser.add_argument('--fineSize', type=int, default=self.fine_size, help='then crop to this size')
         parser.add_argument('--input_nc', type=int, default=3, help='# of input image channels')
         parser.add_argument('--output_nc', type=int, default=3, help='# of output image channels')

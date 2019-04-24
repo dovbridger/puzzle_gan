@@ -62,9 +62,9 @@ class PostGanVirtualModel(BaseModel):
                                                opt.network_to_load,
                                                get_network_file_name(opt.network_load_epoch, 'G'))
             system('copy  "{0}" "{1}"'.format(source_generator_network_path, post_train_generator_path))
-        print("Discriminator will not be loaded, starting from scratch")
-#        self.load_network(post_train_generator_path, self.netG)
-#        print("Pretrainted discriminator loaded")
+#        print("Discriminator will not be loaded, starting from scratch")
+        self.load_network(post_train_generator_path, self.netG)
+        print("Pretrainted discriminator loaded")
         self.dataset_access = None
 
         if opt.isTrain:
