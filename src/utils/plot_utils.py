@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from globals import SAVE_ALL_FIGURES
 
 PLOT_LOC = 0
 
@@ -93,11 +94,12 @@ def general_plot(data, plot_function, axes_configurator, output_file_name=None, 
             plot_function(axes[i], current_data, **kwargs)
         axes_configurator(i, axes, data_per_plot=len(current_data), **kwargs)
     if output_file_name is not None:
-        if os.path.exists(output_file_name):
-            file_name, extension = os.path.splitext(output_file_name)
-            output_file_name = file_name + "_new." + extension
-        plt.savefig(output_file_name)
-        plt.close()
+        if SAVE_ALL_FIGURES or 'all' in output_file_name:
+            if os.path.exists(output_file_name):
+                file_name, extension = os.path.splitext(output_file_name)
+                output_file_name = file_name + "_new." + extension
+            plt.savefig(output_file_name)
+            plt.close()
     else:
         plt.show()
 

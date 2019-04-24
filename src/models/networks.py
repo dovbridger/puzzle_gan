@@ -107,6 +107,7 @@ class UnetGenerator(nn.Module):
         if self.has_extra_layer:
             self.layer5_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
             self.layer5_u = UnetRightBlock(ngf*8*2, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
+
         self.middle_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size, innermost=True)
         # 1 x 2 in -> 2 x 4 out
         self.middle_u = UnetRightBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
@@ -134,6 +135,7 @@ class UnetGenerator(nn.Module):
         self.layer2_d_out = self.layer2_d(self.layer1_d_out)
         self.layer3_d_out = self.layer3_d(self.layer2_d_out)
         self.layer4_d_out = self.layer4_d(self.layer3_d_out)
+
         if self.has_extra_layer:
             self.layer5_d_out = self.layer5_d(self.layer4_d_out)
             self.middle_d_in = self.layer5_d_out
