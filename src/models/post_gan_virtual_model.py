@@ -40,7 +40,7 @@ class PostGanVirtualModel(BaseModel):
         if self.opt.coupled_false:
             for name in self.visual_names:
                 self.visual_names.add('false_' + name)
-            self.false_label = torch.tensor(0).to(self.device)
+            self.false_label = torch.zeros((self.opt.batchSize)).float().to(self.device)
         self.model_names = ['D' + opt.model_suffix]
         self.netD = networks.get_discriminator(opt)
         setattr(self, 'netD' + opt.model_suffix, self.netD)

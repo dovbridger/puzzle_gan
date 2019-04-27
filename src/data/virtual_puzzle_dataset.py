@@ -44,9 +44,8 @@ class VirtualPuzzleDataset(BaseDataset):
         self.root = opt.dataroot
         self.images = []
         self.images_index_dict = {}
-
+        assert opt.num_false_examples == 1 or not opt.coupled_false, "num_false_examples must be 1 in coupled false mode"
         self.phase_folder = os.path.join(self.root, opt.phase)
-
         # Paths of the full puzzle images
         self.paths = sorted(make_dataset(self.phase_folder))
         VirtualPuzzleDataset.transform = get_transform(opt)
@@ -117,6 +116,17 @@ class VirtualPuzzleDataset(BaseDataset):
 
 
     def __getitem__(self, index):
+        if self.opt.coupled_false:
+            example = self.get_item_inner(2 * index)
+            false_example = self.get_item_inner(2 * index + 1)
+            assert false_example['label'] == 0, "coupled false example must have label 0"
+            for key in ['real', 'burnt']:
+                example['false_' + key] = false_example[key]
+            return example
+        else:
+            return self.get_item_inner(index)
+
+    def get_item_inner(self, index):
         example = self.get_pair_example_by_index(index)
         example['burnt'] = self.burn_image(example['real'])
         return example
@@ -125,7 +135,10 @@ class VirtualPuzzleDataset(BaseDataset):
         if len(self.images) == 0:
             return 0
         else:
-            return self.images[-1].num_examples_accumulated
+            num_examples = self.images[-1].num_examples_accumulated
+            if self.opt.coupled_false:
+                num_examples = num_examples / 2
+            return num_examples
 
     @staticmethod
     def get_real_image(path):
