@@ -36,6 +36,11 @@ class PostGanVirtualModel(BaseModel):
         self.visual_names = ['burnt', 'fake']
         if self.opt.fake_loss_weight < 1:
             self.visual_names.append('real')
+
+        if self.opt.coupled_false:
+            for name in self.visual_names:
+                self.visual_names.add('false_' + name)
+            self.false_label = torch.tensor(0).to(self.device)
         self.model_names = ['D' + opt.model_suffix]
         self.netD = networks.get_discriminator(opt)
         setattr(self, 'netD' + opt.model_suffix, self.netD)
@@ -78,9 +83,10 @@ class PostGanVirtualModel(BaseModel):
                 self.loss_names.append('D_real')
 
     def set_input(self, input):
-        if self.opt.fake_loss_weight < 1:
-            self.real = input['real'].to(self.device)
-        self.burnt = input['burnt'].to(self.device)
+        for visual_name in self.visual_names:
+            if 'fake' not in visual_name:
+                setattr(self, visual_name, input[visual_name].to(self.device))
+
         # Is also used in the loss calculation so needs to be on gpu
         self.label = input['label'].float().to(self.device)
         self.image_paths = input['name']
@@ -104,6 +110,19 @@ class PostGanVirtualModel(BaseModel):
         prediction_fake = self.netD(discriminator_fake_input.detach())
         self.loss_D_fake = self.criterionGAN(prediction_fake, self.label)
 
+        if self.opt.coupled_false:
+            # False neighbors
+            # Real
+            if self.opt.fake_loss_weight < 1:
+                discriminator_false_real_input = get_discriminator_input(self.opt, self.false_real)
+                prediction_false_real = self.netD(discriminator_false_real_input)
+                self.loss_D_real += self.criterionGAN(prediction_false_real, self.false_label)
+
+            # Fake
+            discriminator_false_fake_input = get_discriminator_input(self.opt, self.false_fake)
+            # stop backprop to the generator by detaching 'discriminator_false_fake_input'
+            prediction_false_fake = self.netD(discriminator_false_fake_input.detach())
+            self.loss_D_fake += self.criterionGAN(prediction_false_fake, self.false_label)
         # Combined loss
         if self.opt.fake_loss_weight < 1:
             self.loss_D = self.loss_D_real * (1 - self.opt.fake_loss_weight) + self.loss_D_fake * self.opt.fake_loss_weight
