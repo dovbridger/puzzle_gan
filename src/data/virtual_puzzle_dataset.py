@@ -10,7 +10,7 @@ from argparse import Namespace
 from bisect import bisect
 from random import choice
 from globals import ORIENTATION_MAGIC, HORIZONTAL, VERTICAL, NAME_MAGIC, METADATA_FILE_NAME, METADATA_FOLDER_NAME,\
-    METADATA_DELIMITER, DELIMITER_MAGIC
+    METADATA_DELIMITER, DELIMITER_MAGIC, PART_SIZE
 from puzzle.puzzle_utils import get_full_pair_example_name, get_info_from_file_name, set_orientation_in_name,\
     get_full_puzzle_name_from_characteristics
 from puzzle.java_utils import get_java_diff_file, parse_3d_numpy_array_from_json, get_top_k_neighbors,\
@@ -27,7 +27,7 @@ class VirtualPuzzleDataset(BaseDataset):
     def modify_commandline_options(parser, is_train):
         parser.add_argument('--num_false_examples', type=int, default=0,
                             help='What is the ratio of false neighbor to true neighbor examples in the dataset')
-        parser.add_argument('--part_size', type=int, default=64,
+        parser.add_argument('--part_size', type=int, default=PART_SIZE,
                             help='What size are the puzzle parts produced by the dataset (The image width and height'
                                  'must be a multiple of "part_size"')
         parser.add_argument('--puzzle_name', type=str, default='',
