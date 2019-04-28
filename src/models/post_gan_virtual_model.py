@@ -38,9 +38,8 @@ class PostGanVirtualModel(BaseModel):
             self.visual_names.append('real')
 
         if self.opt.coupled_false:
-            for name in self.visual_names:
-                self.visual_names.add('false_' + name)
-            self.false_label = torch.zeros((self.opt.batchSize)).float().to(self.device)
+            self.visual_names += ['false_' + name for name in self.visual_names]
+            self.false_label = torch.zeros((self.opt.batchSize), dtype=torch.float32).to(self.device)
         self.model_names = ['D' + opt.model_suffix]
         self.netD = networks.get_discriminator(opt)
         setattr(self, 'netD' + opt.model_suffix, self.netD)

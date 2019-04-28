@@ -138,7 +138,7 @@ class VirtualPuzzleDataset(BaseDataset):
             num_examples = self.images[-1].num_examples_accumulated
             if self.opt.coupled_false:
                 num_examples = num_examples / 2
-            return num_examples
+            return int(num_examples)
 
     @staticmethod
     def get_real_image(path):
