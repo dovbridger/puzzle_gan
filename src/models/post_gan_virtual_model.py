@@ -39,7 +39,6 @@ class PostGanVirtualModel(BaseModel):
 
         if self.opt.coupled_false:
             self.visual_names += ['false_' + name for name in self.visual_names]
-            self.false_label = torch.zeros((self.opt.batchSize), dtype=torch.float32).to(self.device)
         self.model_names = ['D' + opt.model_suffix]
         self.netD = networks.get_discriminator(opt)
         setattr(self, 'netD' + opt.model_suffix, self.netD)
@@ -59,6 +58,7 @@ class PostGanVirtualModel(BaseModel):
                 clean_discriminator_path, clean_discriminator_target_path))
             system('copy  "{0}" "{1}"'.format(clean_discriminator_path, clean_discriminator_target_path))
             self.load_network(clean_discriminator_target_path, self.netD)
+            print("Pretrainted discriminator loaded")
 
             # Use the same GAN setup (network name + epoch)
             # of the discriminator for the generator as well
@@ -66,9 +66,7 @@ class PostGanVirtualModel(BaseModel):
                                                opt.network_to_load,
                                                get_network_file_name(opt.network_load_epoch, 'G'))
             system('copy  "{0}" "{1}"'.format(source_generator_network_path, post_train_generator_path))
-#        print("Discriminator will not be loaded, starting from scratch")
         self.load_network(post_train_generator_path, self.netG)
-        print("Pretrainted discriminator loaded")
         self.dataset_access = None
 
         if opt.isTrain:
@@ -88,10 +86,13 @@ class PostGanVirtualModel(BaseModel):
 
         # Is also used in the loss calculation so needs to be on gpu
         self.label = input['label'].float().to(self.device)
+        self.false_label = torch.zeros(self.label.shape, dtype=torch.float32).to(self.device)
         self.image_paths = input['name']
 
     def forward(self):
         self.fake = self.netG(self.burnt)
+        if self.opt.coupled_false:
+            self.false_fake = self.netG(self.false_burnt)
 
         if not self.opt.isTrain:
             self.probability = self.netD(get_discriminator_input(self.opt, self.fake))
