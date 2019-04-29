@@ -17,7 +17,7 @@ class CalcDiffModel(BaseModel):
     def modify_commandline_options(parser, is_train=True):
 
         parser.set_defaults(dataset_name='puzzle')
-        parser.set_defaults(no_lsgan=True)
+        parser.set_defaults(no_lsgan=1)
         parser.set_defaults(model_suffix='_post')
         return parser
 

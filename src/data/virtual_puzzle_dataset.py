@@ -35,8 +35,10 @@ class VirtualPuzzleDataset(BaseDataset):
         parser.add_argument('--max_neighbor_rank', type=int, default=-1,
                             help='Only use false neighbors that are ranked up to this number in the original'
                                  '0-burn diff matrix. Min value = 2. 1 or less means use all ranks')
+        parser.add_argument('--cl_factor', type=float, default=4, help='Multiplied by confidence score to get the label')
         parser.set_defaults(resize_or_crop='crop_to_part_size')
         parser.set_defaults(nThreads=0)
+
         return parser
 
     def initialize(self, opt):
@@ -45,6 +47,8 @@ class VirtualPuzzleDataset(BaseDataset):
         self.images = []
         self.images_index_dict = {}
         assert opt.num_false_examples == 1 or not opt.coupled_false, "num_false_examples must be 1 in coupled false mode"
+        if opt.continuous_labels and opt.no_lsgan:
+            print("WARNING: continuous labels withoud LSGAN sucks")
         self.phase_folder = os.path.join(self.root, opt.phase)
         # Paths of the full puzzle images
         self.paths = sorted(make_dataset(self.phase_folder))
