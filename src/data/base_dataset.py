@@ -1,7 +1,7 @@
 import torch.utils.data as data
 from PIL import Image
 import torchvision.transforms as transforms
-from globals import DATASET_MEAN, DATASET_STD
+from utils.util import get_dataset_mean_std
 
 
 class BaseDataset(data.Dataset):
@@ -69,8 +69,7 @@ def get_transform(opt):
 
     if opt.isTrain and not opt.no_flip:
         transform_list.append(transforms.RandomHorizontalFlip())
-    normalization_mean = DATASET_MEAN if opt.use_specific_normalization else [0.5, 0.5, 0.5]
-    normilization_std = DATASET_STD if opt.use_specific_normalization else [0.5, 0.5, 0.5]
+    normalization_mean, normilization_std = get_dataset_mean_std(opt)
     transform_list += [transforms.ToTensor(),
                        transforms.Normalize(normalization_mean,
                                             normilization_std)]

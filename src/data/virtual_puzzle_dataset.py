@@ -84,7 +84,7 @@ class VirtualPuzzleDataset(BaseDataset):
     def save_cropped_image(self, image):
         cropped_folder = os.path.join(self.phase_folder, CROPPED_IMAGES_FOLDER)
         mkdir(cropped_folder)
-        image_numpy = tensor2im(image.horizontal.unsqueeze(0))
+        image_numpy = tensor2im(image.horizontal.unsqueeze(0), opt=self.opt)
         puzzle_name = get_info_from_file_name(image.name_horizontal, NAME_MAGIC)
         image_path = os.path.join(cropped_folder, puzzle_name + image.image_extension)
         save_image(image_numpy, image_path)
@@ -219,7 +219,7 @@ class VirtualPuzzleDataset(BaseDataset):
     def get_pair_numpy(self, image_name, part1, part2):
         example = self.get_pair_example_by_name(image_name, part1, part2)
         real_pair = example['real']
-        return tensor2im(torch.unzsqueeze(real_pair, 0))
+        return tensor2im(torch.unzsqueeze(real_pair, 0), opt=self.opt)
 
 
 

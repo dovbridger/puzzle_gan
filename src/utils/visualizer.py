@@ -8,7 +8,7 @@ from scipy.misc import imresize
 
 
 # save image to the disk
-def save_images(webpage, visuals, image_path, additional_texts=None, aspect_ratio=1.0, width=256):
+def save_images(webpage, visuals, image_path, opt, additional_texts=None, width=256):
     image_dir = webpage.get_image_dir()
     short_path = ntpath.basename(image_path[0])
     name = os.path.splitext(short_path)[0]
@@ -21,14 +21,14 @@ def save_images(webpage, visuals, image_path, additional_texts=None, aspect_rati
             more_text, color = additional_texts[label]
             text = (label + " , " + str(more_text), color)
         if im_data is not None:
-            im = tensor2im(im_data)
+            im = tensor2im(im_data, opt=opt)
             image_name = '%s_%s.png' % (name, label)
             save_path = os.path.join(image_dir, image_name)
             h, w, _ = im.shape
-            if aspect_ratio > 1.0:
-                im = imresize(im, (h, int(w * aspect_ratio)), interp='bicubic')
-            if aspect_ratio < 1.0:
-                im = imresize(im, (int(h / aspect_ratio), w), interp='bicubic')
+            if opt.aspect_ratio > 1.0:
+                im = imresize(im, (h, int(w * opt.aspect_ratio)), interp='bicubic')
+            if opt.aspect_ratio < 1.0:
+                im = imresize(im, (int(h / opt.aspect_ratio), w), interp='bicubic')
             save_image(im, save_path)
 
             ims.append(image_name)
@@ -85,7 +85,7 @@ class Visualizer():
                 images = []
                 idx = 0
                 for label, image in visuals.items():
-                    image_numpy = tensor2im(image)
+                    image_numpy = tensor2im(image, opt=self.opt)
                     label_html_row += '<td>%s</td>' % label
                     images.append(image_numpy.transpose([2, 0, 1]))
                     idx += 1
@@ -112,7 +112,7 @@ class Visualizer():
             else:
                 idx = 1
                 for label, image in visuals.items():
-                    image_numpy = tensor2im(image)
+                    image_numpy = tensor2im(image, opt=self.opt)
                     self.vis.image(image_numpy.transpose([2, 0, 1]), opts=dict(title=label),
                                    win=self.display_id + idx)
                     idx += 1
@@ -120,7 +120,7 @@ class Visualizer():
         if self.use_html and (save_result or not self.saved):  # save images to a html file
             self.saved = True
             for label, image in visuals.items():
-                image_numpy = tensor2im(image)
+                image_numpy = tensor2im(image, opt=self.opt)
                 img_path = os.path.join(self.img_dir, 'epoch%.3d_%s.png' % (epoch, label))
                 save_image(image_numpy, img_path)
             # update website
@@ -130,7 +130,7 @@ class Visualizer():
                 ims, txts, links = [], [], []
 
                 for label, image_numpy in visuals.items():
-                    image_numpy = tensor2im(image)
+                    image_numpy = tensor2im(image, opt=self.opt)
                     img_path = 'epoch%.3d_%s.png' % (n, label)
                     ims.append(img_path)
                     txts.append(label)

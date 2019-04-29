@@ -32,6 +32,6 @@ if __name__ == '__main__':
         img_path = model.get_image_paths()
         width = adjust_image_width_for_vertical_image_in_webpage(img_path[0], opt)
         print('processing (%04d)-th image... %s' % (i, img_path))
-        save_images(webpage, visuals, img_path, additional_texts=image_text, aspect_ratio=opt.aspect_ratio, width=width)
+        save_images(webpage, visuals, img_path, opt, additional_texts=image_text, width=width)
 
     webpage.save()

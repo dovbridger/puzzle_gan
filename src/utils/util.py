@@ -1,21 +1,33 @@
 from __future__ import print_function
 import torch
+from torchvision import transforms
 import numpy as np
 from PIL import Image
 import os
+from globals import DATASET_MEAN, DATASET_STD
 
 
 # Converts a Tensor into an image array (numpy)
 # |imtype|: the desired type of the converted numpy array
-def tensor2im(input_image, imtype=np.uint8):
+def tensor2im(input_image, imtype=np.uint8, opt=None):
     if isinstance(input_image, torch.Tensor):
         image_tensor = input_image.data
     else:
         return input_image
-    image_numpy = image_tensor[0].cpu().float().numpy()
-    if image_numpy.shape[0] == 1:
+    mean, std = get_dataset_mean_std(opt)
+    num_channels = image_tensor.shape[1]
+    mean = mean[0:num_channels]
+    std = std[0:num_channels]
+    inverse_mean = [-m / s for m, s in zip(mean, std)]
+    inverse_std = [1/s for s in std]
+    inverse_transform = transforms.Normalize(mean=inverse_mean, std=inverse_std)
+    image_temp = image_tensor[0].cpu().float()
+    image_numpy = inverse_transform(image_temp).numpy() * 255.0
+    if num_channels == 1:
         image_numpy = np.tile(image_numpy, (3, 1, 1))
-    image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + 1) / 2.0 * 255.0
+    image_numpy = np.transpose(image_numpy, (1, 2, 0))
+    #image_numpy = (np.transpose(image_temp, (1, 2, 0)) + 1) / 2.0 * 255.0
+
     return image_numpy.astype(imtype)
 
 
@@ -35,6 +47,13 @@ def diagnose_network(net, name='network'):
 def save_image(image_numpy, image_path):
     image_pil = Image.fromarray(image_numpy)
     image_pil.save(image_path)
+
+
+def get_dataset_mean_std(opt):
+    if opt is None or not opt.use_specific_normalize:
+        return [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]
+    else:
+        return DATASET_MEAN, DATASET_STD
 
 
 def print_numpy(x, val=True, shp=False):

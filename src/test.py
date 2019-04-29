@@ -71,7 +71,7 @@ if __name__ == '__main__':
             mistake_count += int(mistake)
             if mistake or not opt.save_mistakes_only:
                 width = adjust_image_width_for_vertical_image_in_webpage(img_path[0], opt)
-                save_images(webpage, visuals, img_path, additional_texts=image_text, aspect_ratio=opt.aspect_ratio, width=width)
+                save_images(webpage, visuals, img_path, opt, additional_texts=image_text, width=width)
     if opt.discriminator_test:
         if opt.dataset_name == 'puzzle_with_false':
             with open(discriminator_results_file, 'w') as f:
