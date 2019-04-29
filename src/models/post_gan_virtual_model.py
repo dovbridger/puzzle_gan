@@ -36,6 +36,9 @@ class PostGanVirtualModel(BaseModel):
         self.visual_names = ['burnt', 'fake']
         if self.opt.fake_loss_weight < 1:
             self.visual_names.append('real')
+
+        if self.opt.coupled_false:
+            self.visual_names += ['false_' + name for name in self.visual_names]
         self.model_names = ['D' + opt.model_suffix]
         self.netD = networks.get_discriminator(opt)
         setattr(self, 'netD' + opt.model_suffix, self.netD)
@@ -55,6 +58,7 @@ class PostGanVirtualModel(BaseModel):
                 clean_discriminator_path, clean_discriminator_target_path))
             system('copy  "{0}" "{1}"'.format(clean_discriminator_path, clean_discriminator_target_path))
             self.load_network(clean_discriminator_target_path, self.netD)
+            print("Pretrainted discriminator loaded")
 
             # Use the same GAN setup (network name + epoch)
             # of the discriminator for the generator as well
@@ -62,9 +66,7 @@ class PostGanVirtualModel(BaseModel):
                                                opt.network_to_load,
                                                get_network_file_name(opt.network_load_epoch, 'G'))
             system('copy  "{0}" "{1}"'.format(source_generator_network_path, post_train_generator_path))
-#        print("Discriminator will not be loaded, starting from scratch")
         self.load_network(post_train_generator_path, self.netG)
-        print("Pretrainted discriminator loaded")
         self.dataset_access = None
 
         if opt.isTrain:
@@ -78,15 +80,19 @@ class PostGanVirtualModel(BaseModel):
                 self.loss_names.append('D_real')
 
     def set_input(self, input):
-        if self.opt.fake_loss_weight < 1:
-            self.real = input['real'].to(self.device)
-        self.burnt = input['burnt'].to(self.device)
+        for visual_name in self.visual_names:
+            if 'fake' not in visual_name:
+                setattr(self, visual_name, input[visual_name].to(self.device))
+
         # Is also used in the loss calculation so needs to be on gpu
         self.label = input['label'].float().to(self.device)
+        self.false_label = torch.zeros(self.label.shape, dtype=torch.float32).to(self.device)
         self.image_paths = input['name']
 
     def forward(self):
         self.fake = self.netG(self.burnt)
+        if self.opt.coupled_false:
+            self.false_fake = self.netG(self.false_burnt)
 
         if not self.opt.isTrain:
             self.probability = self.netD(get_discriminator_input(self.opt, self.fake))
@@ -104,6 +110,19 @@ class PostGanVirtualModel(BaseModel):
         prediction_fake = self.netD(discriminator_fake_input.detach())
         self.loss_D_fake = self.criterionGAN(prediction_fake, self.label)
 
+        if self.opt.coupled_false:
+            # False neighbors
+            # Real
+            if self.opt.fake_loss_weight < 1:
+                discriminator_false_real_input = get_discriminator_input(self.opt, self.false_real)
+                prediction_false_real = self.netD(discriminator_false_real_input)
+                self.loss_D_real += self.criterionGAN(prediction_false_real, self.false_label)
+
+            # Fake
+            discriminator_false_fake_input = get_discriminator_input(self.opt, self.false_fake)
+            # stop backprop to the generator by detaching 'discriminator_false_fake_input'
+            prediction_false_fake = self.netD(discriminator_false_fake_input.detach())
+            self.loss_D_fake += self.criterionGAN(prediction_false_fake, self.false_label)
         # Combined loss
         if self.opt.fake_loss_weight < 1:
             self.loss_D = self.loss_D_real * (1 - self.opt.fake_loss_weight) + self.loss_D_fake * self.opt.fake_loss_weight
