@@ -65,12 +65,12 @@ def main():
     print(puzzle_names)
     models_to_compare = ['Original',
                          'Perfect',
-                         'CalcProbabilityModel_paper_g48_d30_b4',
-                         'CalcProbabilityModel_paper_g48_d30_b4_of',
-                         'CalcProbabilityModel_paper_g48_d30_b4_sc']
-    compare_probability_scores(models_to_compare[2:5], indexes=range(1,21), model_titles=['Our method', 'Only Generated', 'Fresh Discriminator'])
-    #combine_all_diff_scores(model_names=models_to_compare[2:5], use_log_diff=True, flatten_params=['', '', '', '', '', ''])
-    #save_diff_matrix_by_models(models_to_compare[2:])
+                         'CalcProbabilityModel_g48_d40_b20_dlr03_coupled',
+                         'CalcProbabilityModel_g48_d50_b20_dlr03_coupled',
+                         'CalcProbabilityModel_g48_d30_b20_dlr03_coupled']
+    #compare_probability_scores(models_to_compare[2:5], indexes=range(1,21), model_titles=['Our method', 'Only Generated', 'Fresh Discriminator'])
+    #combine_all_diff_scores(model_names=models_to_compare[2:], puzzle_names=puzzle_names, use_log_diff=True, flatten_params=['', '', '', '', '', ''])
+    save_diff_matrix_by_models(models_to_compare[2:], puzzle_names=puzzle_names)
 
 if __name__ == '__main__':
     main()
