@@ -89,6 +89,7 @@ class BaseOptions():
                             help='Use continues label values between 0 and 1 according to original confidence')
         parser.add_argument('--coupled_false', action='store_true',
                             help='coupled_false mode')
+        parser.add_argument('--no_normalize', action='store_true', help='Do not normalize data')
 
         self.initialized = True
         return parser

@@ -6,6 +6,7 @@ import torch
 if __name__ == '__main__':
     opt = TestOptions().parse()
     opt.batchSize = 1  # test code only supports batchSize = 1
+    opt.nThreads = 0
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()
     image_names=[]

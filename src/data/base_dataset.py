@@ -71,8 +71,11 @@ def get_transform(opt):
         transform_list.append(transforms.RandomHorizontalFlip())
     normalization_mean = DATASET_MEAN if opt.use_specific_normalization else [0.5, 0.5, 0.5]
     normilization_std = DATASET_STD if opt.use_specific_normalization else [0.5, 0.5, 0.5]
-    transform_list += [transforms.ToTensor(),
-                       transforms.Normalize(normalization_mean,
+    transform_list += [transforms.ToTensor()]
+    print("Adding ToTensor transform")
+    if not opt.no_normalize:
+        print("Adding Normalize transform")
+        transform_list += [transforms.Normalize(normalization_mean,
                                             normilization_std)]
     return transforms.Compose(transform_list)
 
