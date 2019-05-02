@@ -159,7 +159,8 @@ class VirtualPuzzleDataset(BaseDataset):
         :param real_image: The input image
         :return: The burnt image
         '''
-        return torch.where(VirtualPuzzleDataset.burn_mask == 1, torch.tensor(-1.0), real_image)
+        burnt_pixel = torch.zeros((3, 1, 1), dtype=torch.float32)
+        return torch.where(VirtualPuzzleDataset.burn_mask == 1, burnt_pixel, real_image)
 
     def name(self):
         return 'VirtualPuzzleDataset'
