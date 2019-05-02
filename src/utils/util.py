@@ -50,7 +50,7 @@ def save_image(image_numpy, image_path):
 
 
 def get_dataset_mean_std(opt):
-    if opt is None or not opt.use_specific_normalize:
+    if opt is None or not opt.use_specific_normalization:
         return [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]
     else:
         return DATASET_MEAN, DATASET_STD
