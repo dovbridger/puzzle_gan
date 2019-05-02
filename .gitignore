@@ -1,2 +1,7 @@
-*.pyc
-*.bat
+**/*.pyc
+**/*.bat
+venv/**
+.idea/**
+src/globals.py
+src/temp.py
+

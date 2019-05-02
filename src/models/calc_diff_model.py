@@ -17,7 +17,7 @@ class CalcDiffModel(BaseModel):
     def modify_commandline_options(parser, is_train=True):
 
         parser.set_defaults(dataset_name='puzzle')
-        parser.set_defaults(no_lsgan=True)
+        parser.set_defaults(no_lsgan=1)
         parser.set_defaults(model_suffix='_post')
         return parser
 
@@ -46,7 +46,7 @@ class CalcDiffModel(BaseModel):
 
     def forward(self):
         self.fake = self.netG(self.burnt)
-        self.prediction = self.netD(get_discriminator_input(self.opt, self.burnt, self.fake))
+        self.prediction = self.netD(get_discriminator_input(self.opt, self.fake))
 
     def predict_and_store(self):
         self.test()

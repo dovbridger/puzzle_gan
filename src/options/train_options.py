@@ -11,8 +11,8 @@ class TrainOptions(BaseOptions):
         niter = 20#12
         only_crop = False
         parser = BaseOptions.initialize(self, parser)
-        parser.add_argument('--display_freq', type=int, default=2000, help='frequency of showing training results on screen')
-        parser.add_argument('--update_html_freq', type=int, default=20000, help='frequency of saving training results to html')
+        parser.add_argument('--display_freq', type=int, default=1000, help='frequency of showing training results on screen')
+        parser.add_argument('--update_html_freq', type=int, default=1000, help='frequency of saving training results to html')
         parser.add_argument('--print_freq', type=int, default=2000, help='frequency of showing training results on console')
         parser.add_argument('--save_latest_freq', type=int, default=20000, help='frequency of saving the latest results')
         parser.add_argument('--save_epoch_freq', type=int, default=5, help='frequency of saving checkpoints at the end of epochs')
@@ -24,11 +24,13 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--niter_decay', type=int, default=niter_decay, help='# of iter to linearly decay learning rate to zero')
         parser.add_argument('--beta1', type=float, default=0.5, help='momentum term of adam')
         parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate for adam')
-        parser.add_argument('--no_lsgan', action='store_true', help='do *not* use least square GAN, if false, use vanilla GAN')
+        parser.add_argument('--no_lsgan', type=int, help='do *not* use least square GAN, if false, use vanilla GAN')
         parser.add_argument('--pool_size', type=int, default=50, help='the size of image buffer that stores previously generated images')
         parser.add_argument('--no_html', action='store_true', help='do not save intermediate training results to [opt.checkpoints_dir]/[opt.name]/web/')
         parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau')
         parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
         parser.add_argument('--only_crop', type=int, default=int(only_crop), help='if there is no need to resize set to 1 => just crop')
+        parser.add_argument('--dlr', type=float, default=1,
+                            help='fraction of the learning rate for discriminator')
         self.isTrain = True
         return parser

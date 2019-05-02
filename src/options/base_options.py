@@ -5,6 +5,7 @@ import torch
 import models
 import data
 import os.path
+from globals import FINE_SIZE, LOAD_SIZE
 
 class BaseOptions():
     '''
@@ -20,14 +21,13 @@ class BaseOptions():
         model = 'puzzle_gan'
         task = 'puzzle_try'
         experiment_name = 'no_burnt'
-        loadSize = (64, 128)
-        self.fine_size = (64, 128)
+        self.fine_size = FINE_SIZE
         data_root = os.path.join(self.project_root, 'datasets', 'puzzle_parts')
-        batchSize = 64
+        batchSize = 1
         dataset_name = 'puzzle'
         parser.add_argument('--dataroot', type=str, default=data_root, help='path to images (should have subfolders train, validation, test)')
         parser.add_argument('--batchSize', type=int, default=batchSize, help='input batch size')
-        parser.add_argument('--loadSize', type=int, default=loadSize, help='scale images to this size')
+        parser.add_argument('--loadSize', type=int, default=LOAD_SIZE, help='scale images to this size')
         parser.add_argument('--fineSize', type=int, default=self.fine_size, help='then crop to this size')
         parser.add_argument('--input_nc', type=int, default=3, help='# of input image channels')
         parser.add_argument('--output_nc', type=int, default=3, help='# of output image channels')
@@ -61,8 +61,6 @@ class BaseOptions():
                             help='Width of the centered window that will be fed to the discriminator')
         parser.add_argument('--generator_window', type=int, default=self.fine_size[1],
                             help='Width of the centered window where the generated pixels will remain, the rest will be ignored')
-        parser.add_argument('--provide_burnt', action='store_true',
-                            help='Provide the burnt image as input for the discriminator along with the (fake / real) image')
         # How many pixels will be missing from each edge of a puzzle part
         # (The hole between two parts will be 2 * burn_extent)
         parser.add_argument('--burn_extent', type=int, default=2,
@@ -84,6 +82,14 @@ class BaseOptions():
                             help='Threshold from which to start flattening probability')
         parser.add_argument('--flatten_power', type=float, default=1,
                             help='Exponent to be used to flatten probability above "flatten_threshold')
+        parser.add_argument('--use_specific_normalization', action='store_true',
+                            help='When normalizing use datset mean and STD'
+                                 'as specified in global variables "DATASET_MEAN", "DATASET_STD"')
+        parser.add_argument('--continuous_labels', action='store_true',
+                            help='Use continues label values between 0 and 1 according to original confidence')
+        parser.add_argument('--coupled_false', action='store_true',
+                            help='coupled_false mode')
+
         self.initialized = True
         return parser
 

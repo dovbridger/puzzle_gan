@@ -1,6 +1,7 @@
 import torch.utils.data as data
 from PIL import Image
 import torchvision.transforms as transforms
+from globals import DATASET_MEAN, DATASET_STD
 
 
 class BaseDataset(data.Dataset):
@@ -56,6 +57,10 @@ def get_transform(opt):
     elif opt.resize_or_crop == 'none':
         pass
 
+    elif opt.resize_or_crop == 'scale_ar_crop':
+        transform_list.append(transforms.Lambda(
+            lambda image: __down_scale_small_dim(image, opt.loadSize[1])))
+        transform_list.append(transforms.CenterCrop(opt.loadSize[1]))
     elif opt.resize_or_crop == 'crop_to_part_size':
         transform_list.append(transforms.Lambda(
             lambda image: __inffer_crop_transform_from_part_size(image, opt.part_size)))
@@ -64,10 +69,11 @@ def get_transform(opt):
 
     if opt.isTrain and not opt.no_flip:
         transform_list.append(transforms.RandomHorizontalFlip())
-
-    transform_list += [transforms.ToTensor()]#,
-                #       transforms.Normalize((0.5, 0.5, 0.5),
-                 #                           (0.5, 0.5, 0.5))]
+    normalization_mean = DATASET_MEAN if opt.use_specific_normalization else [0.5, 0.5, 0.5]
+    normilization_std = DATASET_STD if opt.use_specific_normalization else [0.5, 0.5, 0.5]
+    transform_list += [transforms.ToTensor(),
+                       transforms.Normalize(normalization_mean,
+                                            normilization_std)]
     return transforms.Compose(transform_list)
 
 
@@ -99,9 +105,7 @@ def __inffer_crop_transform_from_part_size(image, part_size):
     if (new_height, new_width) == (height, width):
         return image
     else:
-        print("Image will be cropped from {0}x{1} to {2}x{3}".format(height, width, new_height, new_width))
         return transforms.functional.crop(image, 0, 0, new_height, new_width)
-
 
 
 def __scale_width(img, target_width):
@@ -123,6 +127,18 @@ def __scale_width(img, target_width):
         __print_size_warning(target_width, target_height, w, h)
 
     return img.resize((w, h), Image.BICUBIC)
+
+def __down_scale_small_dim(img, target_dim_size):
+    original_size = img.size
+    target_size = [0, 0]
+    small_dim = 0 if original_size[0] < original_size[1] else 1
+    large_dim = small_dim ^ 1
+    if original_size[small_dim] == target_dim_size:
+        return img
+    target_size[small_dim] = target_dim_size
+    target_size[large_dim] = int(target_dim_size * original_size[large_dim] / original_size[small_dim])
+
+    return img.resize(target_size, Image.BICUBIC)
 
 
 def __print_size_warning(ow, oh, w, h):

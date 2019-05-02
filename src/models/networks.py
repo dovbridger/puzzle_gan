@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import functools
 from torch.optim import lr_scheduler
-from utils.network_utils import get_centered_window_indexes
+from utils.network_utils import get_generator_mask, get_centered_window_indexes
 
 
 class UnetLeftBlock(nn.Module):
@@ -85,11 +85,14 @@ class UnetGenerator(nn.Module):
     64 x 128 x 3 at the end of the decoder
     Skip connections between encoder and decoder layers of same size are implemented in the 'forward' method
     '''
-    def __init__(self, input_nc, output_nc, generator_window, input_width, ngf=64, norm_layer=nn.BatchNorm2d, kernel_size=4):
+    def __init__(self, input_nc, output_nc, generator_window, input_size, ngf=64, norm_layer=nn.BatchNorm2d,
+                 kernel_size=4, burn_extent=0):
         super(UnetGenerator, self).__init__()
-        self.generated_columns_start, self.generated_columns_end = get_centered_window_indexes(input_width,
-                                                                                               generator_window)
-
+        self.has_extra_layer = input_size[1] >= 256
+        self.generated_columns_start, self.generated_columns_end = get_centered_window_indexes(input_size[1], generator_window)
+        self.generated_window_mask = get_generator_mask(input_size,
+                                                        (self.generated_columns_start, self.generated_columns_end),
+                                                        burn_extent)
         # 64 x 128 in -> 32 x 64 out
         self.layer0_d = UnetLeftBlock(input_nc, ngf, norm_layer=norm_layer, kernel_size=kernel_size)
         # 32 x 64 in -> 16 x 32 out
@@ -101,6 +104,10 @@ class UnetGenerator(nn.Module):
         # 4 x 8 in -> 2 x 4 out
         self.layer4_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
         # 2 x 4 in -> 1 x 2 out
+        if self.has_extra_layer:
+            self.layer5_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
+            self.layer5_u = UnetRightBlock(ngf*8*2, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
+
         self.middle_d = UnetLeftBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size, innermost=True)
         # 1 x 2 in -> 2 x 4 out
         self.middle_u = UnetRightBlock(ngf*8, ngf*8, norm_layer=norm_layer, kernel_size=kernel_size)
@@ -129,12 +136,22 @@ class UnetGenerator(nn.Module):
         self.layer3_d_out = self.layer3_d(self.layer2_d_out)
         self.layer4_d_out = self.layer4_d(self.layer3_d_out)
 
+        if self.has_extra_layer:
+            self.layer5_d_out = self.layer5_d(self.layer4_d_out)
+            self.middle_d_in = self.layer5_d_out
         # middle_d is the last layer of the encoder and middle u is the first layer of the decoder that follows
-        self.middle_d_in = self.layer4_d_out
+        else:
+            self.middle_d_in = self.layer4_d_out
         self.middle_d_out = self.middle_d(self.middle_d_in)
         self.middle_u_out = self.middle_u(self.middle_d_out)
-        # Input to decoder layer 4, before concatenating skip connection
-        self.in_layer4_u = self.middle_u_out
+
+        if self.has_extra_layer:
+            in_5 = torch.cat([self.middle_u_out, self.layer5_d_out], 1)
+            self.in_layer4_u = self.layer5_u(in_5)
+        else:
+            # Input to decoder layer 4, before concatenating skip connection
+            self.in_layer4_u = self.middle_u_out
+
 
         # in_x is the input to layer 'x' of the decoder (counting from the end) after concatenating the skip connection
         # From the output of layer 'x' of the encoder
@@ -149,9 +166,7 @@ class UnetGenerator(nn.Module):
         in_0 = torch.cat([self.layer1_u_out, self.layer0_d_out], 1)
         self.layer0_u_out = self.layer0_u(in_0)
 
-        self.final_output = torch.cat([input[:, :, :, 0:self.generated_columns_start],
-                                       self.layer0_u_out[:, :, :, self.generated_columns_start:self.generated_columns_end],
-                                       input[:, :, :, self.generated_columns_end:]], 3)
+        self.final_output = torch.where(self.generated_window_mask == 1, self.layer0_u_out, input)
         return self.final_output
 
 def get_norm_layer(norm_type='instance'):
@@ -294,11 +309,14 @@ class GANLoss(nn.Module):
             self.loss = nn.BCELoss()
 
     def get_target_tensor(self, input, target_is_real):
-        if target_is_real:
-            target_tensor = self.real_label
+        if isinstance(target_is_real, bool):
+            if target_is_real:
+                target_tensor = self.real_label
+            else:
+                target_tensor = self.fake_label
+            return target_tensor.expand_as(input)
         else:
-            target_tensor = self.fake_label
-        return target_tensor.expand_as(input)
+            return target_is_real.view(-1, 1, 1, 1).expand_as(input)
 
     def __call__(self, input, target_is_real):
         target_tensor = self.get_target_tensor(input, target_is_real)
@@ -316,15 +334,15 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     return net
 
 def get_generator(opt):
-    netG = UnetGenerator(opt.input_nc, opt.output_nc, opt.generator_window, opt.fineSize[1],
-                         ngf=opt.ngf, norm_layer=get_norm_layer(opt.norm), kernel_size=opt.kernel_size)
+    netG = UnetGenerator(opt.input_nc, opt.output_nc, opt.generator_window, opt.fineSize,
+                         ngf=opt.ngf, norm_layer=get_norm_layer(opt.norm), kernel_size=opt.kernel_size,
+                         burn_extent=opt.burn_extent)
     return init_net(netG, opt.init_type, opt.init_gain, opt.gpu_ids)
 
 
 def get_discriminator(opt):
     discriminator_input_nc = opt.output_nc
-    if opt.provide_burnt:
-        discriminator_input_nc += opt.input_nc
+    n_layers = 4 if opt.fineSize[1] >= 256 else 3
     netD = NLayerDiscriminator(discriminator_input_nc, opt.ndf,
-                               n_layers=3, norm_layer=get_norm_layer(opt.norm), use_sigmoid=opt.no_lsgan)
+                               n_layers=n_layers, norm_layer=get_norm_layer(opt.norm), use_sigmoid=opt.no_lsgan)
     return init_net(netD, opt.init_type, opt.init_gain, opt.gpu_ids)

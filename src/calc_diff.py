@@ -3,7 +3,10 @@ from options.test_options import TestOptions
 from data.virtual_puzzle_dataset import VirtualPuzzleDataset
 from models import create_model
 from utils.plot_utils import plot_histograms
+from puzzle.puzzle_utils import get_info_from_file_name
 from puzzle.java_utils import create_probability_matrix3d_with_model_evaluations, parse_java_scores
+from os import path, listdir
+from globals import NAME_MAGIC
 
 def create_diff_matrix_for_puzzle(puzzle_name, opt):
     print("doint puzzle " + puzzle_name)
@@ -38,7 +41,9 @@ def calc_diff():
     opt = TestOptions().parse()
     opt.nThreads = 1   # test code only supports nThreads = 1
     opt.batchSize = 1
-    for puzzle_name in [str(x) + 'b' for x in range(1, 21)]:
+    test_files = listdir(path.join(opt.dataroot, 'test'))
+    puzzle_names = [get_info_from_file_name(file, NAME_MAGIC) for file in test_files if file.endswith('.jpg') or file.endswith('.png')]
+    for puzzle_name in puzzle_names:
         create_diff_matrix_for_puzzle(puzzle_name, opt)
 
 

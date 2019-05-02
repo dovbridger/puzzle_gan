@@ -1,1 +1,0 @@
-python test.py --dataset_name puzzle --calc_loss_stats --phase True --model test_compare --norm batch --how_many 60000 --name compare_batch1 --burn_extent 2 --dataroot ../../puzzle_gan_data/datasets/puzzle_parts/validation --generator_window 4 --discriminator_window 32 --save_images_frequency 200 --generators "[['batch1','34'],['batch1','40'],['batch1','44'], ['batch1','48']]"

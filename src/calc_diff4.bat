@@ -1,2 +1,0 @@
-python calc_diff.py --model calc_diff --name g44_d20 --burn_extent 2 --dataroot C:\SHARE\images\pair_inputs_for_completion\test --generator_window 4 --discriminator_window 32 --network_to_load batch1_post_44 --network_load_epoch 20 --batchSize 1
-python calc_diff.py --model calc_diff --name g44_d30 --burn_extent 2 --dataroot C:\SHARE\images\pair_inputs_for_completion\test --generator_window 4 --discriminator_window 32 --network_to_load batch1_post_44 --network_load_epoch 30 --batchSize 1

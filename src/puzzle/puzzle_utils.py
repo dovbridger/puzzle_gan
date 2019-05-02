@@ -30,15 +30,14 @@ def matches_patterns(input_string, and_pattern, or_pattern):
     return False
 
 
-def read_metadata(folder, file_name=METADATA_FILE_NAME):
+def read_metadata(folder, full_puzzle_name):
     result = {}
-    with open(os.path.join(folder, file_name), 'r') as f:
+    with open(os.path.join(folder, full_puzzle_name + DELIMITER_MAGIC + METADATA_FILE_NAME), 'r') as f:
         content = f.read().split(';')
         for item in content:
             key_value_pair = item.split(':')
             result[key_value_pair[0]] = key_value_pair[1]
     return result
-
 
 def get_full_pair_example_name(full_puzzle_name, part1, part2):
     return full_puzzle_name + "-" + str(part1) + "_" + str(part2)

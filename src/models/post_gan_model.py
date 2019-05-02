@@ -103,9 +103,9 @@ class PostGanModel(BaseModel):
         self.fake_false_0 = self.netG(self.burnt_false_0)
 
         if not self.opt.isTrain:
-            self.true_probability = self.netD(get_discriminator_input(self.opt, self.burnt_true, self.fake_true))
+            self.true_probability = self.netD(get_discriminator_input(self.opt, self.fake_true))
             # false probablity pertains to the first false example only
-            self.false_probability = self.netD(get_discriminator_input(self.opt, self.burnt_true, self.fake_false_0))
+            self.false_probability = self.netD(get_discriminator_input(self.opt, self.fake_false_0))
 
         # Create as many additional fake images as there exist additional false neighbor examples
         for i in range(1, self.opt.num_false_examples):
@@ -119,24 +119,24 @@ class PostGanModel(BaseModel):
     def backward(self):
         # True neighbors
         # Real
-        discriminator_real_true_input = get_discriminator_input(self.opt, self.burnt_true, self.real_true)
+        discriminator_real_true_input = get_discriminator_input(self.opt, self.real_true)
         prediction_real_true = self.netD(discriminator_real_true_input)
         self.loss_D_real_true = self.criterionGAN(prediction_real_true, True)
 
         # Fake
-        discriminator_fake_true_input = get_discriminator_input(self.opt, self.burnt_true, self.fake_true)
+        discriminator_fake_true_input = get_discriminator_input(self.opt, self.fake_true)
         # stop backprop to the generator by detaching 'discriminator_fake_true_input'
         prediction_fake_true = self.netD(discriminator_fake_true_input.detach())
         self.loss_D_fake_true = self.criterionGAN(prediction_fake_true, True)
 
         # False neighbors
         # Real
-        discriminator_real_false_input = get_discriminator_input(self.opt, self.burnt_false_0, self.real_false_0)
+        discriminator_real_false_input = get_discriminator_input(self.opt, self.real_false_0)
         prediction_real_false = self.netD(discriminator_real_false_input)
         self.loss_D_real_false = self.criterionGAN(prediction_real_false, False)
 
         # Fake
-        discriminator_fake_false_input = get_discriminator_input(self.opt, self.burnt_false_0, self.fake_false_0)
+        discriminator_fake_false_input = get_discriminator_input(self.opt, self.fake_false_0)
         # stop backprop to the generator by detaching 'discriminator_fake_false_input'
         prediction_fake_false = self.netD(discriminator_fake_false_input.detach())
         self.loss_D_fake_false = self.criterionGAN(prediction_fake_false, False)
