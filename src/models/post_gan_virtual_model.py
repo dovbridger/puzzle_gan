@@ -25,6 +25,8 @@ class PostGanVirtualModel(BaseModel):
         # Real images loss weight will be 1 - fake_loss_weight
         parser.add_argument('--fake_loss_weight', type=float,  default=0.5,
                             help="Weight of the loss on fake images in the total loss calculation")
+        parser.add_argument('--fresh_discriminator', action='store_true',
+                            help='use a fresh discriminator rather than the one specified in "network_to_load"')
         parser.set_defaults(dataset_name='virtual_puzzle')
 
         return parser
@@ -57,8 +59,11 @@ class PostGanVirtualModel(BaseModel):
             print("copying clean discriminator from '{0}' to '{1}'".format(
                 clean_discriminator_path, clean_discriminator_target_path))
             system('copy  "{0}" "{1}"'.format(clean_discriminator_path, clean_discriminator_target_path))
-            self.load_network(clean_discriminator_target_path, self.netD)
-            print("Pretrainted discriminator loaded")
+            if opt.fresh_discriminator:
+                print("WARNING: fresh_discriminator requested, not loading weights")
+            else:
+                self.load_network(clean_discriminator_target_path, self.netD)
+                print("Pretrainted discriminator loaded")
 
             # Use the same GAN setup (network name + epoch)
             # of the discriminator for the generator as well
