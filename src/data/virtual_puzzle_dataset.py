@@ -10,7 +10,7 @@ from argparse import Namespace
 from bisect import bisect
 from random import choice
 from globals import ORIENTATION_MAGIC, HORIZONTAL, VERTICAL, NAME_MAGIC, METADATA_FILE_NAME, METADATA_FOLDER_NAME,\
-    METADATA_DELIMITER, DELIMITER_MAGIC, PART_SIZE
+    METADATA_DELIMITER, DELIMITER_MAGIC, PART_SIZE, DATASET_MEAN, DATASET_STD
 from puzzle.puzzle_utils import get_full_pair_example_name, get_info_from_file_name, set_orientation_in_name,\
     get_full_puzzle_name_from_characteristics
 from puzzle.java_utils import get_java_diff_file, parse_3d_numpy_array_from_json, get_top_k_neighbors,\
@@ -132,7 +132,7 @@ class VirtualPuzzleDataset(BaseDataset):
 
     def get_item_inner(self, index):
         example = self.get_pair_example_by_index(index)
-        example['burnt'] = self.burn_image(example['real'])
+        example['burnt'] = self.burn_image(example['real'], self.opt.burn_with_mean)
         return example
 
     def __len__(self):
@@ -153,13 +153,12 @@ class VirtualPuzzleDataset(BaseDataset):
         return real_image
 
     @staticmethod
-    def burn_image(real_image):
-        '''
-        Sets a (2 * opt.burn_extent) column of pixels to -1 in the center of a cloned instance of real_image
-        :param real_image: The input image
-        :return: The burnt image
-        '''
+    def burn_image(real_image, burn_with_mean):
         burnt_pixel = torch.zeros((3, 1, 1), dtype=torch.float32)
+        if not burn_with_mean:
+            mean = torch.tensor(DATASET_MEAN, dtype=torch.float32)
+            std = torch.tensor(DATASET_STD, dtype=torch.float32)
+            burnt_pixel[:, 0, 0] = -mean / std
         return torch.where(VirtualPuzzleDataset.burn_mask == 1, burnt_pixel, real_image)
 
     def name(self):
@@ -189,7 +188,7 @@ class VirtualPuzzleDataset(BaseDataset):
 
     def get_pair_example_by_name(self, image_name, part1, part2):
         real_pair = self.crop_pair_by_image_name(image_name, part1, part2)
-        burnt_pair = self.burn_image(real_pair)
+        burnt_pair = self.burn_image(real_pair, self.opt.burn_with_mean)
         name = get_full_pair_example_name(image_name, part1, part2)
         return {'real': real_pair, 'burnt': burnt_pair, 'name': name}
 
