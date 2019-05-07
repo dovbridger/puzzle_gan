@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 from globals import SAVE_ALL_FIGURES
 
-PLOT_LOC = 0
+PLOT_LOC = 'center'
 
 def plot_images(ims, figsize=(12, 6), rows=None, interp=False, titles=None, colors=None, output_file_name=None):
     if rows == None:

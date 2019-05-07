@@ -27,6 +27,7 @@ class PostGanVirtualModel(BaseModel):
                             help="Weight of the loss on fake images in the total loss calculation")
         parser.add_argument('--fresh_discriminator', action='store_true',
                             help='use a fresh discriminator rather than the one specified in "network_to_load"')
+        parser.add_argument('--nop_generator', action='store_true', help='dont use a generator (burnt = fake)')
         parser.set_defaults(dataset_name='virtual_puzzle')
 
         return parser
@@ -95,9 +96,15 @@ class PostGanVirtualModel(BaseModel):
         self.image_paths = input['name']
 
     def forward(self):
-        self.fake = self.netG(self.burnt)
+        if self.opt.nop_generator:
+            self.fake = self.burnt
+        else:
+            self.fake = self.netG(self.burnt)
         if self.opt.coupled_false:
-            self.false_fake = self.netG(self.false_burnt)
+            if self.opt.nop_generator:
+                self.false_fake = self.false_burnt
+            else:
+                self.false_fake = self.netG(self.false_burnt)
 
         if not self.opt.isTrain:
             self.probability = self.netD(get_discriminator_input(self.opt, self.fake))
