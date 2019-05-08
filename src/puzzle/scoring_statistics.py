@@ -291,13 +291,13 @@ def combine_all_diff_scores(model_names, puzzle_names=None, correction_method='n
                 score = tuple(puzzle_scores[k])
                 score_sums[k] = score_sums[k] + score
         confidence[i] = tuple(np.array(score_sum).flatten() for score_sum in score_sums)
-    puzzle_description = "All_puzzles-" + correction_method
+    puzzle_description = "All_puzzles-" + puzzle_names[0][-1]
     plot_labels = [model_name + str(params) for model_name, params in zip(model_names, flatten_params)]
     print(plot_labels)
     plot_y(ranks,
-           sort=True, colors=COLORS, labels=plot_labels,
-           titles=['Diff score ranking of the true neighbors (sorted)'],
-           output_file_name=get_figure_name(puzzle_description, 'ranks'))
+          sort=True, colors=COLORS, labels=plot_labels,
+         titles=['Diff score ranking of the true neighbors (sorted)'],
+        output_file_name=get_figure_name(puzzle_description, 'ranks'))
     plot_bars(buddies, labels=plot_labels, colors=COLORS,
               titles=['Total Best Buddies Count'], tick_labels=tick_labels,
               output_file_name=get_figure_name(puzzle_description, 'best_buddies'))
@@ -329,10 +329,13 @@ def make_true_false_score_histogram(score_matrix, num_x_parts, num_y_parts,
     return true_scores, false_scores
 
 
-def plot_true_false_score_historgrams(true_scores, false_scores, num_bins=10, exclude_threshold={'True':1,'False':0}):
+def plot_true_false_score_historgrams(true_scores, false_scores,
+                                      num_bins=10,
+                                      description='',
+                                      exclude_threshold={'True':1,'False':0}):
     if exclude_threshold is not None:
-        true_scores = [score for score in true_scores if score < exclude_threshold['True']]
-        false_scores = [score for score in false_scores if score > exclude_threshold['False']]
+        true_scores = [score for score in true_scores if score <= exclude_threshold['True']]
+        false_scores = [score for score in false_scores if score >= exclude_threshold['False']]
     true_scores = np.array(true_scores)
     false_scores = np.array(false_scores)
     for label, array in [('True', true_scores), ('False', false_scores)]:
@@ -343,7 +346,7 @@ def plot_true_false_score_historgrams(true_scores, false_scores, num_bins=10, ex
         title = label + ' Probability Histogram (exclude threshold = ' + str(exclude_threshold[label]) +')\n' + stats
         plot_histograms([array], num_bins=num_bins,
                         titles=[title],
-                        output_file_name=get_figure_name("", label + " probability_histogram"))
+                        output_file_name=get_figure_name(description, label + " probability_histogram"))
 
 
 def get_figure_name(puzzle_description, figure_type):

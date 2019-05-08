@@ -4,6 +4,7 @@ import os
 from globals import SAVE_ALL_FIGURES
 
 PLOT_LOC = 'center'
+FIGURE_SIZE = (6, 6)
 
 def plot_images(ims, figsize=(12, 6), rows=None, interp=False, titles=None, colors=None, output_file_name=None):
     if rows == None:
@@ -28,7 +29,7 @@ def plot_images(ims, figsize=(12, 6), rows=None, interp=False, titles=None, colo
 
 
 def _get_axes_from_data(data_array):
-    fig, axes = plt.subplots(1, len(data_array), sharey=True, tight_layout=True)
+    fig, axes = plt.subplots(1, len(data_array), sharey=True, figsize=FIGURE_SIZE, tight_layout=True)
     if len(data_array) == 1:
         axes = [axes]
     return axes
