@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 from globals import SAVE_ALL_FIGURES
 
-PLOT_LOC = 'center'
+PLOT_LOC = 'upper right'
 FIGURE_SIZE = (6, 6)
 
 def plot_images(ims, figsize=(12, 6), rows=None, interp=False, titles=None, colors=None, output_file_name=None):
@@ -45,9 +45,13 @@ def listify_input(f):
 
 
 @listify_input
-def plot_histograms(data, num_bins=20, titles=None, colors=None, labels=None, output_file_name=None, loc=PLOT_LOC):
+def plot_histograms(data, num_bins=20, titles=None, colors=None, labels=None, output_file_name=None,
+                    loc=PLOT_LOC, linewidth=None, axes_labels=None):
         def hist_on_axes(axes, data, color=None, label=None, **kwargs):
-            axes.hist(data, bins=num_bins, color=color, histtype='step', label=label)
+            if axes_labels is not None:
+                axes.set_xlabel(axes_labels[0])
+                axes.set_ylabel(axes_labels[1])
+            axes.hist(data, bins=num_bins, color=color, histtype='step', label=label, linewidth=linewidth)
 
         general_plot(data, hist_on_axes, configure_axes, titles=titles,
                      labels=labels, colors=colors, output_file_name=output_file_name, loc=loc)

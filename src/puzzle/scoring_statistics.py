@@ -118,11 +118,11 @@ def count_best_buddies(diff_matrix3d, num_x_parts, num_y_parts):
     count and vertical
     '''
     num_parts = diff_matrix3d.shape[1]
-    true_best_buddies = np.zeros((2,), dtype='int32')
-    true_best_neighbors = np.zeros((2,), dtype='int32')
-    false_best_buddies = np.zeros((2,), dtype='int32')
-    false_best_neighbors = np.zeros((2,), dtype='int32')
-    directions = [(1, 0), (3, 2)]
+    true_best_buddies = np.zeros((4,), dtype='int32')
+    true_best_neighbors = np.zeros((4,), dtype='int32')
+    false_best_buddies = np.zeros((4,), dtype='int32')
+    false_best_neighbors = np.zeros((4,), dtype='int32')
+    directions = [(1, 0), (3, 2), (0, 1), (2, 3)]
     for i in range(len(directions)):
         direction, reversed_direction = directions[i]
         for part in range(num_parts):
@@ -266,8 +266,9 @@ def compare_best_buddies(diff_matrices, num_x_parts, num_y_parts, puzzle_descrip
 
 
 def combine_all_diff_scores(model_names, puzzle_names=None, correction_method='none',
-                            use_log_diff=USE_LOG_DIFF, flatten_params=USE_FLATTEN):
-
+                            use_log_diff=USE_LOG_DIFF, flatten_params=USE_FLATTEN, model_titles=None):
+    if model_titles is None:
+        model_titles = model_names
     all_scores = {'ranks': [], 'buddies': [], 'confidence': []}
     for puzzle_name in puzzle_names:
         print("Collecting scores for puzzle " + puzzle_name)
@@ -292,17 +293,16 @@ def combine_all_diff_scores(model_names, puzzle_names=None, correction_method='n
                 score_sums[k] = score_sums[k] + score
         confidence[i] = tuple(np.array(score_sum).flatten() for score_sum in score_sums)
     puzzle_description = "All_puzzles-" + puzzle_names[0][-1]
-    plot_labels = [model_name + str(params) for model_name, params in zip(model_names, flatten_params)]
-    print(plot_labels)
+    print(model_titles)
     plot_y(ranks,
-          sort=True, colors=COLORS, labels=plot_labels,
-         titles=['Diff score ranking of the true neighbors (sorted)'],
-        output_file_name=get_figure_name(puzzle_description, 'ranks'))
-    plot_bars(buddies, labels=plot_labels, colors=COLORS,
-              titles=['Total Best Buddies Count'], tick_labels=tick_labels,
+           sort=True, colors=COLORS, labels=model_titles,
+           titles=['Diff score ranking of the true neighbors (sorted)'],
+           output_file_name=get_figure_name(puzzle_description, 'ranks'))
+    plot_bars(buddies, labels=model_titles, colors=COLORS,
+              titles=['Best Buddies Count'], tick_labels=tick_labels,
               output_file_name=get_figure_name(puzzle_description, 'best_buddies'))
     plot_histograms(confidence,
-                    num_bins=10, colors=COLORS, labels=plot_labels,
+                    num_bins=10, colors=COLORS, labels=model_titles,
                     titles=['Top True Scores', 'Top False scores'],
                     output_file_name=get_figure_name(puzzle_description, 'confidence_scores'))
 

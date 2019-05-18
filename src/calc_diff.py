@@ -7,6 +7,7 @@ from puzzle.puzzle_utils import get_info_from_file_name
 from puzzle.java_utils import create_probability_matrix3d_with_model_evaluations, parse_java_scores
 from os import path, listdir
 from globals import NAME_MAGIC
+import time
 
 def create_diff_matrix_for_puzzle(puzzle_name, opt):
     print("doint puzzle " + puzzle_name)
@@ -15,7 +16,10 @@ def create_diff_matrix_for_puzzle(puzzle_name, opt):
     dataset.initialize(opt)
     model = create_model(opt)
     model.setup(opt)
+    start_time = time.time()
     create_probability_matrix3d_with_model_evaluations(opt.puzzle_name, opt.part_size, model, dataset)
+    duration = time.time() - start_time
+    print("Time to complete {0} with batch {1} was {2}".format(opt.puzzle_name, opt.batchSize, duration))
 
 
 def compare_puzzle_scores(score_file):
@@ -35,12 +39,16 @@ def compare_puzzle_scores(score_file):
                                                           min(results[i])))
     title = 'Puzzle Score Histogram Comparison'
     plot_histograms(results, num_bins=10, labels=method_names, titles=[title])
+    return results
 
 
 def calc_diff():
     opt = TestOptions().parse()
     opt.nThreads = 1   # test code only supports nThreads = 1
-    opt.batchSize = 1
+    #opt.batchSize = 1
+    print("sleeping %s seconds" % opt.delay_start)
+    time.sleep(opt.delay_start)
+    print("starting")
     test_files = listdir(path.join(opt.dataroot, 'test'))
     puzzle_names = [get_info_from_file_name(file, NAME_MAGIC) for file in test_files if file.endswith('.jpg') or file.endswith('.png')]
     for puzzle_name in puzzle_names:
