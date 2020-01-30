@@ -9,7 +9,10 @@ def get_info_from_file_name(file_name, requested_info_magic):
     for info in file_name.split(DELIMITER_MAGIC):
         if info.startswith(requested_info_magic):
             return info.split(requested_info_magic)[1]
-    return None
+    if requested_info_magic == NAME_MAGIC:
+        return os.path.splitext(file_name)[0]
+    elif requested_info_magic == ORIENTATION_MAGIC:
+        return HORIZONTAL
 
 
 def get_full_puzzle_name_from_characteristics(puzzle_name, part_size=None, orientation=None):

@@ -70,8 +70,8 @@ class VirtualPuzzleDataset(BaseDataset):
     def load_base_images(self):
         num_examples_accumulated = 0
         VirtualImage.initialize(self.opt)
-        for path in [p for p in self.paths if ORIENTATION_MAGIC + HORIZONTAL in p and
-                     NAME_MAGIC + str(self.opt.puzzle_name) in p]:
+        for path in [p for p in self.paths if get_info_from_file_name(p, NAME_MAGIC) == self.opt.puzzle_name and
+                                              get_info_from_file_name(p, ORIENTATION_MAGIC) == HORIZONTAL]:
             current_image = VirtualImage(path, num_examples_accumulated)
             num_examples_accumulated = current_image.num_examples_accumulated
             if SAVE_CROPPED_IMAGES:
