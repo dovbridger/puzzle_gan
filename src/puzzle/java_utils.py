@@ -3,10 +3,11 @@ import numpy as np
 import json
 from puzzle.puzzle_utils import get_full_puzzle_name_from_characteristics
 from models.calc_diff_model import CALC_PROBABILITY_MODEL_NAME
-from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, ROOT_OF_MODEL_DATA, WINDOWS_ROOT_DIR,\
+from globals import BURN_EXTENT, BURN_EXTENT_MAGIC, ROOT_OF_MODEL_DATA, DATA_ROOT_DIR,\
     PART_SIZE, NAME_MAGIC, PART_SIZE_MAGIC, VERTICAL, HORIZONTAL, DELIMITER_MAGIC
-JAVA_DATA_FOLDER = os.path.join(WINDOWS_ROOT_DIR, 'java_artifacts', 'Puzzle Resources', 'Data', 'Init')
+JAVA_DATA_FOLDER = os.path.join(DATA_ROOT_DIR, 'java_artifacts', 'Puzzle Resources', 'Data', 'Init')
 JAVA_DIFF_MATRIX_FILE_NAME = "diff_matrix.txt"
+JAVA_DIFF_MATRIX_SUFFIX = '_DBS1_DN2_LF1.0_UI0_MC0_' + JAVA_DIFF_MATRIX_FILE_NAME
 JAVA_MODIFIED_DIFF_MATRIX_EXTENSION = "_modified"
 # One power less the the original max float (38)
 MAX_FLOAT = 3.4028235e+37
@@ -137,6 +138,9 @@ def get_java_diff_file(puzzle_name, burn_extent=BURN_EXTENT, part_size=PART_SIZE
     raise FileExistsError("Diff matrix file doesn't exist for name-{0}, part_size-{1} burn_extent-{2}".format(puzzle_name,
                                                                                                               part_size,
                                                                                                               burn_extent))
+def create_java_diff_file_name(puzzle_name, burn_extent=BURN_EXTENT, part_size=PART_SIZE):
+    base_name = get_full_puzzle_name_from_characteristics(puzzle_name=puzzle_name, part_size=part_size, burn_extent=burn_extent)
+    return os.path.join(JAVA_DATA_FOLDER, base_name + JAVA_DIFF_MATRIX_SUFFIX)
 
 
 def calc_confidence(diff_matrix3d):
@@ -264,10 +268,17 @@ def assign_diff_values_by_original_rank(num_values, lower_bound=None, upper_boun
     return result
 
 
-def save_diff_matrix_cnn_for_java(puzzle_names, model_name, additional_params=None, burn_extent=BURN_EXTENT):
+def save_diff_matrix_cnn_for_java(puzzle_names, model_name, additional_params=None, part_size=PART_SIZE,
+                                  burn_extent=BURN_EXTENT):
     for puzzle_name in puzzle_names:
         diff_matrix_cnn = load_diff_matrix_cnn(puzzle_name, model_name)
-        original_java_diff_matrix_file = get_java_diff_file(puzzle_name, burn_extent=burn_extent)
+        try:
+            original_java_diff_matrix_file = get_java_diff_file(puzzle_name, part_size=part_size,
+                                                                burn_extent=burn_extent)
+        except FileExistsError:
+            print("Didn't find original diff matrix file, using default name")
+            original_java_diff_matrix_file = create_java_diff_file_name(puzzle_name, part_size=part_size,
+                                                                        burn_extent=burn_extent)
         modified_java_diff_matrix_file = original_java_diff_matrix_file[:-4] + \
                                          JAVA_MODIFIED_DIFF_MATRIX_EXTENSION + "_" + model_name
         if additional_params is not None:

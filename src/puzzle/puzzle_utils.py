@@ -2,7 +2,7 @@ import numpy as np
 import os
 from utils.plot_utils import plot_y, plot_bars
 from globals import NAME_MAGIC, DELIMITER_MAGIC, PART_SIZE, ORIENTATION_MAGIC,\
-    PART_SIZE_MAGIC, METADATA_FILE_NAME, HORIZONTAL, VERTICAL
+    PART_SIZE_MAGIC, METADATA_FILE_NAME, HORIZONTAL, BURN_EXTENT_MAGIC
 
 
 def get_info_from_file_name(file_name, requested_info_magic):
@@ -16,9 +16,10 @@ def get_info_from_file_name(file_name, requested_info_magic):
         return HORIZONTAL
 
 
-def get_full_puzzle_name_from_characteristics(puzzle_name, part_size=None, orientation=None):
+def get_full_puzzle_name_from_characteristics(puzzle_name, part_size=None, orientation=None, burn_extent=None):
     assert puzzle_name is not None and puzzle_name != '', "puzzle name must be provided"
-    characteristics = [(NAME_MAGIC, puzzle_name), (PART_SIZE_MAGIC, part_size), (ORIENTATION_MAGIC, orientation)]
+    characteristics = [(NAME_MAGIC, puzzle_name),(PART_SIZE_MAGIC, part_size), (ORIENTATION_MAGIC, orientation),
+                       (BURN_EXTENT_MAGIC, burn_extent)]
     return DELIMITER_MAGIC.join([magic + str(value) for magic, value in characteristics if value is not None])
 
 
