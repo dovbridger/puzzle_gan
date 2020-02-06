@@ -17,15 +17,13 @@ class VirtualImage:
 
 
     def __init__(self, path, num_examples_accumulated):
-        self.image_dir = os.path.dirname(path)
+        self.path = path
         file_name, self.image_extension = os.path.splitext(os.path.basename(path))
         self.name_horizontal = set_orientation_in_name(file_name, HORIZONTAL)
         self.name_vertical = set_orientation_in_name(self.name_horizontal, VERTICAL)
 
         from data.virtual_puzzle_dataset import VirtualPuzzleDataset
-        self.horizontal = VirtualPuzzleDataset.get_real_image(os.path.join(
-            self.image_dir,
-            self.name_horizontal + self.image_extension))
+        self.horizontal = VirtualPuzzleDataset.get_real_image(self.path)
         self.vertical = self.horizontal.transpose(2, 1).flip(1)
         _, height, width = self.horizontal.shape
         assert height % VirtualImage.opt.part_size == 0 and width % VirtualImage.opt.part_size == 0, \

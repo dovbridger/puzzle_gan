@@ -264,13 +264,15 @@ def assign_diff_values_by_original_rank(num_values, lower_bound=None, upper_boun
     return result
 
 
-def save_diff_matrix_cnn_for_java(puzzle_names, model_name, additional_params='0', burn_extent=BURN_EXTENT):
+def save_diff_matrix_cnn_for_java(puzzle_names, model_name, additional_params=None, burn_extent=BURN_EXTENT):
     for puzzle_name in puzzle_names:
         diff_matrix_cnn = load_diff_matrix_cnn(puzzle_name, model_name)
         original_java_diff_matrix_file = get_java_diff_file(puzzle_name, burn_extent=burn_extent)
         modified_java_diff_matrix_file = original_java_diff_matrix_file[:-4] + \
-                                         JAVA_MODIFIED_DIFF_MATRIX_EXTENSION + "_" + model_name + "_" + additional_params +\
-                                         original_java_diff_matrix_file[-4:]
+                                         JAVA_MODIFIED_DIFF_MATRIX_EXTENSION + "_" + model_name
+        if additional_params is not None:
+            modified_java_diff_matrix_file += "_" + additional_params
+        modified_java_diff_matrix_file += original_java_diff_matrix_file[-4:]
         save_3d_numpy_array_to_json(diff_matrix_cnn, modified_java_diff_matrix_file)
 
 

@@ -17,12 +17,7 @@ def test_compare_diff_scores(model_names, indexes=range(1, 21), correction_metho
                                   use_log_diff=True,
                                   flatten_params=flatten_params)
 
-def save_diff_matrix_by_models(model_names, puzzle_names):
-    from puzzle.java_utils import save_diff_matrix_cnn_for_java
-    for model_name in model_names:
-        save_diff_matrix_cnn_for_java(puzzle_names, model_name,
-                                      additional_params='0',
-                                      burn_extent=BURN_EXTENT)
+
 
 def plot_probability_histogram(model_name, puzzle_names):
     true_scores, false_scores = [], []
@@ -79,9 +74,8 @@ def main():
     print(puzzle_names)
     models_to_compare = ['Perfect',
                          'Original',
-                         'CalcProbabilityModel_batch1_g48_d40_b2_partial']
-    #compare_probability_scores(models_to_compare[2:], puzzle_names=puzzle_names, model_titles=['Our GAN Inpainting Discriminator', 'Fresh Discriminator', 'Fresh Discriminator(No Inpainting)'])
-    save_diff_matrix_by_models(models_to_compare[2:], puzzle_names=puzzle_names)
+                         'CalcProbabilityModel_batch1_g48_d40_b2']
+    compare_probability_scores(models_to_compare[2:], puzzle_names=puzzle_names, model_titles=['Our GAN Inpainting Discriminator', 'Fresh Discriminator', 'Fresh Discriminator(No Inpainting)'])
     #combine_all_diff_scores(model_names=models_to_compare[1:],
      #                       puzzle_names=puzzle_names, use_log_diff=True,
       #                      flatten_params=['', '', '', '', '', '',''],

@@ -55,7 +55,7 @@ class VirtualPuzzleDataset(BaseDataset):
         VirtualPuzzleDataset.transform = get_transform(opt)
         print("Loading base images")
         self.load_base_images()
-        print("Base images are loaded")
+        print(str(len(self.images)) + " base images were loaded")
         self.set_neighbor_choice_options_limit(opt.max_neighbor_rank if opt.max_neighbor_rank >=2 else MAX_NEIGHBOR_LIMIT)
         if opt.phase == 'test':
             try:
@@ -70,8 +70,13 @@ class VirtualPuzzleDataset(BaseDataset):
     def load_base_images(self):
         num_examples_accumulated = 0
         VirtualImage.initialize(self.opt)
-        for path in [p for p in self.paths if get_info_from_file_name(p, NAME_MAGIC) == self.opt.puzzle_name and
-                                              get_info_from_file_name(p, ORIENTATION_MAGIC) == HORIZONTAL]:
+        relevant_paths = [p for p in self.paths if
+                          get_info_from_file_name(os.path.basename(p), ORIENTATION_MAGIC) == HORIZONTAL]
+        if self.opt.puzzle_name != "":
+            relevant_paths = [p for p in relevant_paths if
+                get_info_from_file_name(os.path.basename(p), NAME_MAGIC) == self.opt.puzzle_name]
+
+        for path in relevant_paths:
             current_image = VirtualImage(path, num_examples_accumulated)
             num_examples_accumulated = current_image.num_examples_accumulated
             if SAVE_CROPPED_IMAGES:
