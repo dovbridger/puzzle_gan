@@ -6,6 +6,7 @@ from globals import NAME_MAGIC, DELIMITER_MAGIC, PART_SIZE, ORIENTATION_MAGIC,\
 
 
 def get_info_from_file_name(file_name, requested_info_magic):
+    file_name = os.path.splitext(file_name)[0]
     for info in file_name.split(DELIMITER_MAGIC):
         if info.startswith(requested_info_magic):
             return info.split(requested_info_magic)[1]
